@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UWA Skill-Swap — Intro to Python for beginners</title>
+  <!-- CITS5505 Checkpoint 2 static mockup (Issue: post detail) — Bootstrap 5.3.3, no backend -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="index.html">UWA Skill-Swap</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
+              aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Discover</a></li>
+          <li class="nav-item"><a class="nav-link" href="login.html">Log in</a></li>
+          <li class="nav-item"><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Register</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Discover</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Post</li>
+      </ol>
+    </nav>
+
+    <article class="card shadow-sm mb-4">
+      <div class="card-body p-4 p-md-5">
+        <header class="mb-4">
+          <span class="badge text-bg-light border mb-2">Coding</span>
+          <h1 class="h2 mb-2">Intro to Python for beginners</h1>
+          <p class="text-secondary mb-0">
+            <span class="text-muted">Posted by</span>
+            <a href="#" class="fw-semibold link-underline link-underline-opacity-0 link-underline-opacity-100-hover">alex_demo</a>
+            <span class="text-muted">· mock preview</span>
+          </p>
+          <div class="d-flex flex-wrap gap-3 mt-3 small text-secondary">
+            <span><strong class="text-body">12</strong> likes</span>
+            <span><strong class="text-body">3</strong> comments</span>
+          </div>
+        </header>
+
+        <div class="post-body text-secondary mb-4">
+          <p class="mb-3">
+            I’m a third-year Computer Science student and I’d like to help anyone who is new to programming get comfortable with Python.
+            We can work through lab exercises, small scripts, or your assignment briefs (I won’t write solutions for you, but I’ll explain concepts).
+          </p>
+          <p class="mb-3">
+            Prefer meeting at the Reid Library or a quick Teams call. Usually free Tuesday and Thursday afternoons.
+          </p>
+          <p class="mb-0">
+            Bring your laptop with Python 3 installed (or we can use the lab machines).
+          </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-primary" disabled title="Static mockup — not wired">Express interest</button>
+          <a href="index.html" class="btn btn-outline-secondary">Back to Discover</a>
+        </div>
+      </div>
+    </article>
+
+    <section class="mb-2" aria-labelledby="comments-heading">
+      <h2 id="comments-heading" class="h5 mb-3">Comments</h2>
+      <ul class="list-unstyled d-flex flex-column gap-3">
+        <li class="card shadow-sm">
+          <div class="card-body">
+            <p class="small mb-1">
+              <strong>jamie_demo</strong>
+              <span class="text-muted">· 2 days ago (mock)</span>
+            </p>
+            <p class="mb-0 text-secondary small">Hi! Are you still free this week? I’m struggling with loops in COMP1005.</p>
+          </div>
+        </li>
+        <li class="card shadow-sm">
+          <div class="card-body">
+            <p class="small mb-1">
+              <strong>alex_demo</strong>
+              <span class="text-muted">· 1 day ago (mock)</span>
+            </p>
+            <p class="mb-0 text-secondary small">Yes — Thursday 3pm works for me. I’ll bring a whiteboard notebook.</p>
+          </div>
+        </li>
+        <li class="card shadow-sm">
+          <div class="card-body">
+            <p class="small mb-1">
+              <strong>sam_demo</strong>
+              <span class="text-muted">· 5 hours ago (mock)</span>
+            </p>
+            <p class="mb-0 text-secondary small">Would this be okay for someone who has only used Scratch before?</p>
+          </div>
+        </li>
+      </ul>
+
+      <div class="card border-dashed mt-3 bg-white">
+        <div class="card-body">
+          <label class="form-label small text-secondary" for="commentBox">Add a comment (mock)</label>
+          <textarea class="form-control mb-2" id="commentBox" rows="2" placeholder="Write a comment…" disabled></textarea>
+          <button type="button" class="btn btn-sm btn-outline-primary" disabled>Post comment</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-top py-3 mt-4 bg-white">
+    <div class="container small text-secondary">UWA Skill-Swap — static post detail mockup for Checkpoint 2.</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+          crossorigin="anonymous"></script>
+</body>
+</html>

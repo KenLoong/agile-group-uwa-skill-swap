@@ -38,10 +38,10 @@ In a university environment, students possess diverse talents beyond their prima
 
 | UWA ID | Name | GitHub Account |
 | :--- | :--- | :--- |
-| `[24702822]` | Warson | [Warson Long](https://github.com/WarsonLong) |
-| `[24319908]` | Dylan | [Yuxuan Xi](https://github.com/dylayXi) |
-| `[24902808]` | Shawn | [Shawn Wang](https://github.com/ShawnWang) |
-| `[24684008]` | Nuwanga | [Nuwanga Niroshan](https://github.com/NuwangaNiroshan) |
+| `[24702822]` | Warson Long | [KenLoong](https://github.com/KenLoong) |
+| `[24319908]` | Dylan Yuxuan Xi | [dylayXi](https://github.com/dylayXi) |
+| `[24920808]` | Shawn Wang | [Lipo021](https://github.com/Lipo021) |
+| `[24684008]` | Nuwanga Niroshan Hewa Wiladdarage | [NuwangaNiroshan](https://github.com/NuwangaNiroshan) |
 
 ---
 

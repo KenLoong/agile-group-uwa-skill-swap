@@ -34,8 +34,12 @@
   <main class="container py-4">
     <header class="mb-4">
       <h1 class="h2 mb-2">Dashboard</h1>
-      <p class="text-secondary mb-0">
+      <p class="text-secondary mb-1">
         Logged-in mock preview for Checkpoint 2 planning.
+      </p>
+      <p class="small text-secondary mb-0">
+        Post statuses help owners track whether a listing is still open, matched, or closed.
+        <a href="post-lifecycle-help.html">Learn about post status</a>.
       </p>
       <p id="uwa-dashboard-interest-live" class="visually-hidden" aria-live="polite" aria-atomic="true"></p>
     </header>
@@ -85,6 +89,7 @@
                   <tr>
                     <th>Title</th>
                     <th>Category</th>
+                    <th>Status</th>
                     <th>Posted</th>
                     <th class="text-end">Actions</th>
                   </tr>
@@ -93,6 +98,7 @@
                   <tr>
                     <td>Python tutoring</td>
                     <td><span class="badge text-bg-light border">Coding</span></td>
+                    <td><span class="badge text-bg-success">Open</span></td>
                     <td>2026-04-14</td>
                     <td class="text-end">
                       <button class="btn btn-sm btn-outline-primary me-2" disabled>Edit</button>
@@ -102,6 +108,7 @@
                   <tr>
                     <td>Guitar basics</td>
                     <td><span class="badge text-bg-light border">Music</span></td>
+                    <td><span class="badge text-bg-warning">Matched</span></td>
                     <td>2026-04-12</td>
                     <td class="text-end">
                       <button class="btn btn-sm btn-outline-primary me-2" disabled>Edit</button>

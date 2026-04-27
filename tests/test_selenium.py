@@ -71,8 +71,26 @@ class TestTaggedPostDetailRendering(BaseSeleniumTest):
         self.driver.delete_all_cookies()
 
     def test_tagged_post_detail_rendering(self):
-        # Implementation to be added in the next commit
-        pass
+        # Navigate to the seeded post detail page
+        post_url = f'{self.base_url}/post/1'
+        self.driver.get(post_url)
+        
+        wait = WebDriverWait(self.driver, 10)
+        
+        # Wait for the post title to ensure the page has loaded
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, 'h1')))
+        
+        # Verify that expected tags are visible on the post detail page
+        page_text = self.driver.page_source.lower()
+        self.assertIn('python', page_text, "Expected tag 'python' not found in page source.")
+        self.assertIn('selenium', page_text, "Expected tag 'selenium' not found in page source.")
+        
+        # Verify that tag labels appear in the intended user-facing location (tag pills)
+        tag_elements = self.driver.find_elements(By.CSS_SELECTOR, '.tag-pill')
+        visible_tags = [tag.text.lower().strip('#') for tag in tag_elements]
+        
+        self.assertIn('python', visible_tags, "Tag 'python' is not rendered in a .tag-pill element.")
+        self.assertIn('selenium', visible_tags, "Tag 'selenium' is not rendered in a .tag-pill element.")
 
 if __name__ == '__main__':
     unittest.main()

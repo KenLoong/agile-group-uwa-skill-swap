@@ -10,3 +10,8 @@ tags_dev.db
 
 # Environment
 .env
+
+# User-uploaded post images
+# Keep the directory in the repository via .gitkeep, but do not commit runtime uploads.
+static/uploads/posts/*
+!static/uploads/posts/.gitkeep

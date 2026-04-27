@@ -38,6 +38,10 @@ We keep the “client ↔ Flask ↔ SQLAlchemy” story in one place so examiner
 * If a change is documentation-only, say so in the PR title (e.g. prefix `docs:`) so reviewers skip runtime checks when appropriate.  
 * Disagreements about the diagram should be resolved by updating the README and discussing in the next stand-up or the forum thread your team uses.  
 
+## Editor and formatting (EditorConfig)
+
+The repository includes a root [`.editorconfig`](.editorconfig) so Python, HTML, Jinja, and JavaScript (plus common neighbours like CSS, JSON, and shell scripts) get consistent indentation, newline style, and charset **without** each developer maintaining private-only settings. Install an EditorConfig plugin in your editor if it does not ship by default. If you add a new top-level file type, extend `.editorconfig` in the same pull request that introduces the first file of that type so contributors do not fight invisible whitespace in reviews.
+
 ## Contact
 
 Use your team’s agreed channel (Canvas, Teams, or GitHub Discussions) for day-to-day questions. This file is for repository hygiene and pointers only.

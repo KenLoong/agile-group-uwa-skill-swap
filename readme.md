@@ -149,6 +149,13 @@ When Mermaid is not rendered (plain text, some PDF exports), the same idea still
 * If we introduce a separate front-end build step, draw an extra box for the bundler; Flask remains the single HTTP entry for server-rendered pages in the current design.  
 * For deployment diagrams (reverse proxy, WSGI server), add a separate doc; this README block stays focused on **client ↔ Flask ↔ SQLAlchemy** only.  
 * The teaching team and peers should be able to trace any user story from UI touchpoint down to a model without opening more than a handful of files.  
+---
+
+## API contracts
+
+The main AJAX-facing JSON endpoints are documented in [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md).
+
+This contract covers the discover filtering endpoint, tag metadata endpoint, public statistics endpoint, and dashboard chart endpoint. It is intended to keep frontend JavaScript, Flask routes, and future tests aligned as the project grows.
 
 ---
 

@@ -40,7 +40,12 @@
                     <div class="card-body p-4 p-md-5">
                         <h1 class="h4 mb-2 text-center">Create an account</h1>
                         <p class="small text-muted text-center mb-4">
-                            Mock signup only — use your <code class="small">@student.uwa.edu.au</code> email.
+                            Mock signup only — use your <code class="small">@student.uwa.edu.au</code> email. After the backend
+                            merge, creating an account will send a <strong>verification link</strong> to that inbox; you must
+                            confirm before the server treats your address as owned (and before optional
+                            <code>REQUIRE_VERIFIED_EMAIL_TO_LOGIN</code> blocks sign-in). See
+                            <a href="verify-pending.html" class="text-decoration-none">pending verification</a> copy for the user-facing
+                            story, and <code>docs/EMAIL_VERIFICATION.md</code> for implementers.
                         </p>
                         <form novalidate>
                             <div class="mb-3">

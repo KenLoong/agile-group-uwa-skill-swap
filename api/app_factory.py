@@ -1,31 +1,15 @@
 # =============================================================================
-# Minimal app factory for API slice tests (tags). Full app lives in app.py later.
+# Test factory — delegates to root app.create_app (blueprint-refactored)
+# =============================================================================
+# Tests and legacy imports use `api.app_factory.create_app`. The canonical
+# implementation now lives in `app.py` after splitting routes into
+# `blueprints/{auth,posts,api,messages}` to reduce merge conflicts.
 # =============================================================================
 from __future__ import annotations
 
-import os
+from app import create_app as _create_app
 from flask import Flask
-
-from api.post_status import bp as post_status_bp
-from api.tags_blueprint import bp as tags_bp
-from api.tags_models import db
 
 
 def create_app(testing: bool = True) -> Flask:
-    app = Flask(__name__)
-    app.config["TESTING"] = testing
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    if testing:
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    else:
-        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-            "DATABASE_URL", "sqlite:///./tags_dev.db"
-        )
-    db.init_app(app)
-    app.register_blueprint(tags_bp)
-    app.register_blueprint(post_status_bp)
-
-    with app.app_context():
-        db.create_all()
-
-    return app
+    return _create_app(testing=testing)

@@ -5,8 +5,14 @@ Thank you for helping with this course project. This file is a lightweight guide
 ## Before you change code
 
 1. Pull the latest `master` (or the integration branch your tutor named for the iteration).
-2. Skim the **system architecture** section in the root [`README.md`](README.md#system-architecture). That section holds the **Client ↔ Flask ↔ SQLAlchemy** diagram and the sequence sketch. You do not have to memorise it, but you should know which layer a change belongs to (UI, route, or persistence) before you open a pull request.
-3. If your change alters how HTTP reaches the app or how models map to tables, **update the README diagram or its bullet notes** in the same pull request so documentation stays honest.
+2. Know which **Flask blueprint** owns your URL, so you edit the right file and reduce merge pain:
+   * **`blueprints/auth.py`** — login, register, verification flows under `/auth/…`.
+   * **`blueprints/posts.py`** — listing CRUD, `post/set-status` registration, and HTML stubs under `/posts/…`.
+   * **`blueprints/api.py`** — JSON discover / tags and lightweight `/api/health` style helpers.
+   * **`blueprints/messages.py`** — inbox and thread JSON under `/messages/…` (stubs until the messaging model lands).
+   The process-wide factory lives in the root [`app.py`](app.py); tests may still import [`api.app_factory.create_app`](api/app_factory.py) as a thin wrapper.
+3. Skim the **system architecture** section in the root [`README.md`](README.md#system-architecture). That section holds the **Client ↔ Flask ↔ SQLAlchemy** diagram and the sequence sketch. You do not have to memorise it, but you should know which layer a change belongs to (UI, route, or persistence) before you open a pull request.
+4. If your change alters how HTTP reaches the app or how models map to tables, **update the README diagram or its bullet notes** in the same pull request so documentation stays honest.
 
 ## Branching and commits
 

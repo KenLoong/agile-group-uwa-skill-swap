@@ -1,9 +1,15 @@
 # Python
+venv/
+env/
 .venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*$py.class
 .pytest_cache/
-
+.coverage
+htmlcov/
+instance/
 # Local DBs from ad-hoc runs
 tags_dev.db
 *.db

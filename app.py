@@ -13,7 +13,7 @@ from typing import Any
 
 from flask import Flask, jsonify
 
-from api.tags_models import db
+from api.tags_models import db, ensure_default_taxonomy
 from blueprints import api as api_pkg
 from blueprints import auth, messages, posts
 
@@ -56,6 +56,7 @@ def create_app(
 
     with app.app_context():
         db.create_all()
+        ensure_default_taxonomy()
 
     return app
 

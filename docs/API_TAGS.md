@@ -42,7 +42,7 @@ GET /api/tags HTTP/1.1
 
 ## Implementation boundaries (this branch)
 
-- Uses a **minimal** `TPost` / `Tag` / `post_tags` schema under `api/tags_models.py`, not the full production `Post` from the draft merge.
+- Uses `Post`, `Category`, `Tag`, and `post_tags` defined in `api/tags_models.py` (canonical naming aligned with the team draft baseline).
 - SQL uses an **INNER** join from tags to posts so unused tag definitions do not appear.
 
 ## Running tests
@@ -56,7 +56,7 @@ PYTHONPATH=. python -m unittest tests.test_api_tags -v
 
 ## Future work (not in this issue)
 
-- Merge models with the canonical `Post` and `User` tables.
+- Add optional fields (uploads, like counts, etc.) to `Post` as separate issues.
 - Add `?q=` prefix search and `?min_count=2` for advanced discover UIs.
 - Harden against duplicate slug inserts at the form layer; API assumes integrity.
 

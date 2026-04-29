@@ -9,7 +9,8 @@ from contextlib import contextmanager
 
 from api.app_factory import create_app
 from api.post_aggregates import post_detail_payload, post_list_payload
-from api.tags_models import TPost, Tag, User, db
+from api.tags_models import Category, Post, Tag, User, db
+from sqlalchemy import select
 
 
 @contextmanager
@@ -41,8 +42,10 @@ def _tag(session, slug: str, label: str) -> Tag:
     return t
 
 
-def _post(session, owner: User, title: str) -> TPost:
-    p = TPost(title=title, owner_id=owner.id)
+def _post(session, owner: User, title: str) -> Post:
+    cid = session.scalar(select(Category.id).where(Category.slug == "general"))
+    assert cid is not None
+    p = Post(title=title, owner_id=owner.id, category_id=int(cid))
     session.add(p)
     session.flush()
     return p

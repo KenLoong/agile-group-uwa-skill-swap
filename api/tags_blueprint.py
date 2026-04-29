@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from flask import Blueprint, jsonify, request
 
-from api.tags_models import Tag, TPost, db, tag_payload_rows
+from api.tags_models import db, tag_payload_rows
 
 bp = Blueprint("tags_api", __name__, url_prefix="/api")
 

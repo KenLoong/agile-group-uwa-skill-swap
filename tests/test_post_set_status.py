@@ -16,7 +16,8 @@ from contextlib import contextmanager
 from typing import Any
 
 from api.app_factory import create_app
-from api.tags_models import TPost, User, db
+from api.tags_models import Category, Post, User, db
+from sqlalchemy import select
 
 
 # -----------------------------------------------------------------------------
@@ -46,8 +47,10 @@ def _user(sess, n: int = 1) -> User:
     return u
 
 
-def _post(sess, owner: User, title: str = "skill", status: str = "open") -> TPost:
-    p = TPost(title=title, owner_id=owner.id, status=status)
+def _post(sess, owner: User, title: str = "skill", status: str = "open") -> Post:
+    cid = sess.scalar(select(Category.id).where(Category.slug == "general"))
+    assert cid is not None
+    p = Post(title=title, owner_id=owner.id, status=status, category_id=int(cid))
     sess.add(p)
     sess.flush()
     return p
@@ -98,12 +101,12 @@ class TestPostSetStatusOwnerOpenToMatchedToClosed(unittest.TestCase):
         self.assertTrue(d.get("ok"))
         self.assertEqual(d.get("status"), "matched")
         with _session(self.app) as s:
-            reloaded = s.get(TPost, self.post_id)
+            reloaded = s.get(Post, self.post_id)
             self.assertEqual(reloaded.status, "matched")
 
     def test_owner_sets_closed_from_matched(self) -> None:
         with _session(self.app) as s:
-            p = s.get(TPost, self.post_id)
+            p = s.get(Post, self.post_id)
             p.status = "matched"
         r = _set_status(self.c, post_id=self.post_id, status="closed", as_user=1)
         self.assertEqual(r.status_code, 200)
@@ -113,7 +116,7 @@ class TestPostSetStatusOwnerOpenToMatchedToClosed(unittest.TestCase):
         r = _set_status(self.c, post_id=self.post_id, status="closed", as_user=1)
         self.assertEqual(r.status_code, 200)
         with _session(self.app) as s:
-            self.assertEqual(s.get(TPost, self.post_id).status, "closed")
+            self.assertEqual(s.get(Post, self.post_id).status, "closed")
 
     def test_string_post_id_in_json_accepted(self) -> None:
         """Some clients send numeric ids as strings; we coerce."""
@@ -158,7 +161,7 @@ class TestPostSetStatusForbiddenNonOwner(unittest.TestCase):
         r = _set_status(self.c, post_id=self.post_a, status="closed", as_user=2)
         self.assertEqual(r.status_code, 403)
         with _session(self.app) as s:
-            self.assertEqual(s.get(TPost, self.post_a).status, "open")
+            self.assertEqual(s.get(Post, self.post_a).status, "open")
 
 
 class TestPostSetStatusUnauthenticated(unittest.TestCase):
@@ -215,7 +218,9 @@ class TestPostSetStatusValidation(unittest.TestCase):
     def test_orphan_post_no_owner_403(self) -> None:
         """If owner_id is null, no caller should be considered owner in this check."""
         with _session(self.app) as s:
-            p = TPost(title="orphan", owner_id=None, status="open")
+            cid = s.scalar(select(Category.id).where(Category.slug == "general"))
+            assert cid is not None
+            p = Post(title="orphan", owner_id=None, status="open", category_id=int(cid))
             s.add(p)
             s.flush()
             oid = p.id

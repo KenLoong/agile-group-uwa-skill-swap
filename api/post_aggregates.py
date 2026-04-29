@@ -12,23 +12,23 @@ from typing import Any
 
 from sqlalchemy import func, select
 
-from api.tags_models import TPost, Tag, db, post_tags
+from api.tags_models import Post, Tag, db, post_tags
 
 
 def _post_base_select():
     """Shared aggregate select for post list/detail JSON payloads."""
     return (
         select(
-            TPost.id.label("id"),
-            TPost.title.label("title"),
-            TPost.status.label("status"),
-            TPost.owner_id.label("owner_id"),
+            Post.id.label("id"),
+            Post.title.label("title"),
+            Post.status.label("status"),
+            Post.owner_id.label("owner_id"),
             func.count(Tag.id).label("tag_count"),
         )
-        .select_from(TPost)
-        .outerjoin(post_tags, TPost.id == post_tags.c.post_id)
+        .select_from(Post)
+        .outerjoin(post_tags, Post.id == post_tags.c.post_id)
         .outerjoin(Tag, Tag.id == post_tags.c.tag_id)
-        .group_by(TPost.id, TPost.title, TPost.status, TPost.owner_id)
+        .group_by(Post.id, Post.title, Post.status, Post.owner_id)
     )
 
 
@@ -73,7 +73,7 @@ def _shape_post(
 
 def post_list_payload(*, limit: int = 50) -> list[dict[str, Any]]:
     """Return list-ready post payloads with aggregate tag counts attached."""
-    stmt = _post_base_select().order_by(TPost.id.asc()).limit(limit)
+    stmt = _post_base_select().order_by(Post.id.asc()).limit(limit)
     rows = [dict(row) for row in db.session.execute(stmt).mappings().all()]
 
     post_ids = [int(row["id"]) for row in rows]
@@ -84,7 +84,7 @@ def post_list_payload(*, limit: int = 50) -> list[dict[str, Any]]:
 
 def post_detail_payload(post_id: int) -> dict[str, Any] | None:
     """Return one post payload with aggregate counts, or None if missing."""
-    stmt = _post_base_select().where(TPost.id == post_id)
+    stmt = _post_base_select().where(Post.id == post_id)
     row = db.session.execute(stmt).mappings().first()
 
     if row is None:

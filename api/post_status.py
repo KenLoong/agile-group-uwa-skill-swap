@@ -1,14 +1,14 @@
 # =============================================================================
 # POST /post/set-status  —  owner updates listing lifecycle (open / matched / closed)
 # =============================================================================
-# Coursework slice: authenticated caller must match TPost.owner_id. Test client
+# Coursework slice: authenticated caller must match Post.owner_id. Test client
 # passes identity via X-User-Id (dev/test); production would replace with session.
 # =============================================================================
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 
-from api.tags_models import POST_STATUS_VALUES, TPost, db
+from api.tags_models import POST_STATUS_VALUES, Post, db
 
 bp = Blueprint("post_status", __name__)
 
@@ -69,7 +69,7 @@ def post_set_status():
     if uid is None:
         return jsonify({"ok": False, "error": "auth", "detail": "X-User-Id required"}), 401
 
-    rec = db.session.get(TPost, pid)
+    rec = db.session.get(Post, pid)
     if rec is None:
         return jsonify({"ok": False, "error": "not_found", "detail": "post"}), 404
 

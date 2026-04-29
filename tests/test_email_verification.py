@@ -1,6 +1,7 @@
 # =============================================================================
 # Unit tests — email verification service (in-memory; no Flask test client yet)
 # =============================================================================
+import os
 import time
 import unittest
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 from auth.email_verification import EmailVerificationService, _InMemoryTokenStore, _hash_token, _sign_payload
 from auth.exceptions import ResendThrottledError, TokenExpiredError, TokenInvalidError
 from auth.mailer import DevConsoleMailer
+from auth.constants import TEST_SECRET_KEY
 
 
 @dataclass
@@ -19,12 +21,21 @@ class _U:
 
 class TestEmailVerificationService(unittest.TestCase):
     def setUp(self) -> None:
+        self._old_secret = os.environ.get("SECRET_KEY")
+        os.environ["SECRET_KEY"] = TEST_SECRET_KEY
+
         self.store = _InMemoryTokenStore()
         self.svc = EmailVerificationService(
             self.store,
             mailer=lambda: DevConsoleMailer(),
             token_ttl=120,
         )
+
+    def tearDown(self) -> None:
+        if self._old_secret is None:
+            os.environ.pop("SECRET_KEY", None)
+        else:
+            os.environ["SECRET_KEY"] = self._old_secret
 
     def test_issue_sends_routes_token(self) -> None:
         u = _U(1, "a@student.uwa.edu.au")

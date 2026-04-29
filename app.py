@@ -13,10 +13,45 @@ from typing import Any
 
 from flask import Flask, jsonify
 
+from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
+
 from api.tags_models import db
 from blueprints import api as api_pkg
 from blueprints import auth, messages, posts
 
+def _configured_secret(value: object | None) -> str | None:
+    """Return a non-empty secret value, or None when unset/blank."""
+    if value is None:
+        return None
+
+    secret = str(value).strip()
+    return secret or None
+
+
+def _resolve_secret_key(app: Flask, *, testing: bool) -> str:
+    """Resolve the Flask secret key without using runtime fallbacks.
+
+    Normal runtime must provide SECRET_KEY through the environment or explicit
+    app config. Tests may use a fixed test-only value so unit tests remain
+    reproducible without committing real secrets.
+    """
+    configured = _configured_secret(app.config.get("SECRET_KEY"))
+    env_secret = _configured_secret(os.environ.get(ENV_SECRET_KEY))
+
+    if configured:
+        return configured
+
+    if env_secret:
+        return env_secret
+
+    if testing:
+        return TEST_SECRET_KEY
+
+    raise RuntimeError(
+        "SECRET_KEY must be set in the environment before starting the app "
+        "outside testing mode. Copy .env.example to .env and provide a long "
+        "random value."
+    )
 
 def create_app(
     test_config: dict[str, Any] | None = None,
@@ -28,6 +63,7 @@ def create_app(
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     if test_config:
         app.config.update(test_config)
+    app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
     if testing and "SQLALCHEMY_DATABASE_URI" not in app.config:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     if not testing and "SQLALCHEMY_DATABASE_URI" not in app.config:

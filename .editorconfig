@@ -1,0 +1,96 @@
+# =============================================================================
+# EditorConfig — https://editorconfig.org
+# =============================================================================
+# Keeps basic formatting aligned for Python, HTML, Jinja templates, and JS
+# when contributors use VS Code, Cursor, PyCharm, vim, etc. This file is
+# intentionally verbose for coursework traceability; trim in production if
+# your team prefers minimal config.
+# =============================================================================
+root = true
+
+# -----------------------------------------------------------------------------
+# All text files: safe defaults (UTF-8, Unix newlines, trim trailing whitespace)
+# -----------------------------------------------------------------------------
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# -----------------------------------------------------------------------------
+# Python — PEP 8 friendly; 4 spaces; 79 is a soft wrap hint for some tools
+# -----------------------------------------------------------------------------
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# Common Python tooling file names
+[*.pyi]
+indent_style = space
+indent_size = 4
+
+# -----------------------------------------------------------------------------
+# HTML (static pages under /pages, future Jinja-rendered templates)
+# -----------------------------------------------------------------------------
+[*.{html,htm}]
+indent_style = space
+indent_size = 2
+
+# -----------------------------------------------------------------------------
+# Jinja2 / Jinja — often mixed with HTML; 2 spaces matches typical front-end
+# -----------------------------------------------------------------------------
+[*.{jinja,j2,jinja2}]
+indent_style = space
+indent_size = 2
+
+# Some projects use .html.jinja — match web stack
+[*.html.jinja]
+indent_style = space
+indent_size = 2
+
+# -----------------------------------------------------------------------------
+# JavaScript (static/js, future bundler output excluded via local .gitignore)
+# -----------------------------------------------------------------------------
+[*.{js,mjs,cjs}]
+indent_style = space
+indent_size = 2
+
+# -----------------------------------------------------------------------------
+# CSS / JSON / YAML — frequently edited next to the above
+# -----------------------------------------------------------------------------
+[*.css]
+indent_style = space
+indent_size = 2
+
+[*.json]
+indent_style = space
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# -----------------------------------------------------------------------------
+# Markdown — do not strip meaningful double spaces at EOL (line breaks)
+# -----------------------------------------------------------------------------
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# -----------------------------------------------------------------------------
+# Shell scripts (local dev helpers)
+# -----------------------------------------------------------------------------
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# -----------------------------------------------------------------------------
+# Makefiles require tab indentation (POSIX)
+# -----------------------------------------------------------------------------
+[Makefile]
+indent_style = tab
+
+# =============================================================================
+# End of file — add new globs when the repo gains e.g. TypeScript or Tailwind
+# =============================================================================

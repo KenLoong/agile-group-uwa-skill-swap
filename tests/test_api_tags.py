@@ -17,7 +17,7 @@ import unittest
 from contextlib import contextmanager
 
 from api.app_factory import create_app
-from api.tags_models import Category, Post, Tag, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, Post, Tag, db
 from sqlalchemy import select
 
 
@@ -45,7 +45,7 @@ def _create_tag(session, *, slug: str, label: str) -> Tag:
 
 
 def _general_category_id(sess) -> int:
-    cid = sess.scalar(select(Category.id).where(Category.slug == "general"))
+    cid = sess.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
     assert cid is not None
     return int(cid)
 

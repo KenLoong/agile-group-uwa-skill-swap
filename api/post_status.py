@@ -9,6 +9,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from api.tags_models import POST_STATUS_VALUES, Post, db
+from api.taxonomy_helpers import is_allowed_post_status
 
 bp = Blueprint("post_status", __name__)
 
@@ -52,8 +53,8 @@ def post_set_status():
 
     if not isinstance(status_raw, str):
         return jsonify({"ok": False, "error": "status", "detail": "string status required"}), 400
-    st = status_raw.strip().lower()
-    if st not in POST_STATUS_VALUES:
+
+    if not is_allowed_post_status(status_raw):
         return (
             jsonify(
                 {
@@ -64,6 +65,7 @@ def post_set_status():
             ),
             400,
         )
+    st = status_raw.strip().lower()
 
     uid = _caller_user_id()
     if uid is None:

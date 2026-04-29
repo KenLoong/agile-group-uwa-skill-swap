@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from api.app_factory import create_app
-from api.tags_models import Category, Post, User, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, Post, User, db
 from sqlalchemy import select
 
 
@@ -48,7 +48,7 @@ def _user(sess, n: int = 1) -> User:
 
 
 def _post(sess, owner: User, title: str = "skill", status: str = "open") -> Post:
-    cid = sess.scalar(select(Category.id).where(Category.slug == "general"))
+    cid = sess.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
     assert cid is not None
     p = Post(title=title, owner_id=owner.id, status=status, category_id=int(cid))
     sess.add(p)
@@ -218,7 +218,7 @@ class TestPostSetStatusValidation(unittest.TestCase):
     def test_orphan_post_no_owner_403(self) -> None:
         """If owner_id is null, no caller should be considered owner in this check."""
         with _session(self.app) as s:
-            cid = s.scalar(select(Category.id).where(Category.slug == "general"))
+            cid = s.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
             assert cid is not None
             p = Post(title="orphan", owner_id=None, status="open", category_id=int(cid))
             s.add(p)

@@ -44,6 +44,17 @@ GET /api/tags HTTP/1.1
 
 - Uses `Post`, `Category`, `Tag`, and `post_tags` defined in `api/tags_models.py` (canonical naming aligned with the team draft baseline).
 - SQL uses an **INNER** join from tags to posts so unused tag definitions do not appear.
+- String normalisation helpers for slug rules live in `api/taxonomy_helpers.py`; lifecycle validation reused from `POST_STATUS_VALUES`.
+
+## Related: post stubs (`GET /posts/`, detail JSON)
+
+Aggregate helpers (`api/post_aggregates.py`) return per-post payloads used by blueprint stubs:
+
+- **`title`**, **`description`**, **`status`**, **`owner_id`**.
+- **`category`**: `{ "slug", "label" }` from the joined category row (defaults include `general` after taxonomy bootstrap).
+- **`timestamp_iso`**: ISO8601 string from naive `UTC` timestamps (matching `datetime.utcnow` defaults until timezone work lands).
+- **`image_filename`** (nullable), **`comment_count`**, **`like_count`** (denormalised counters for dashboards).
+- **`tag_count`** plus **`tags`** (ordered slug/label pairs from the junction table).
 
 ## Running tests
 
@@ -56,7 +67,7 @@ PYTHONPATH=. python -m unittest tests.test_api_tags -v
 
 ## Future work (not in this issue)
 
-- Add optional fields (uploads, like counts, etc.) to `Post` as separate issues.
+- Add richer discover filters (`/api/filter`) once query contracts freeze.
 - Add `?q=` prefix search and `?min_count=2` for advanced discover UIs.
 - Harden against duplicate slug inserts at the form layer; API assumes integrity.
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from flask import Flask
 
+from api.post_status import bp as post_status_bp
 from api.tags_blueprint import bp as tags_bp
 from api.tags_models import db
 
@@ -22,6 +23,7 @@ def create_app(testing: bool = True) -> Flask:
         )
     db.init_app(app)
     app.register_blueprint(tags_bp)
+    app.register_blueprint(post_status_bp)
 
     with app.app_context():
         db.create_all()

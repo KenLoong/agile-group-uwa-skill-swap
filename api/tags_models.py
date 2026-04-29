@@ -8,6 +8,14 @@ from sqlalchemy import func, select
 
 db = SQLAlchemy()
 
+# Valid values for TPost.status (set via POST /post/set-status)
+POST_STATUS_OPEN = "open"
+POST_STATUS_MATCHED = "matched"
+POST_STATUS_CLOSED = "closed"
+POST_STATUS_VALUES = frozenset(
+    {POST_STATUS_OPEN, POST_STATUS_MATCHED, POST_STATUS_CLOSED}
+)
+
 post_tags = db.Table(
     "post_tags",
     db.Column("post_id", db.Integer, db.ForeignKey("t_post.id"), primary_key=True),
@@ -23,13 +31,25 @@ class Tag(db.Model):
     posts = db.relationship("TPost", secondary=post_tags, back_populates="tags")
 
 
+class User(db.Model):
+    """Lightweight user row for post ownership checks in API slice tests."""
+
+    __tablename__ = "t_user"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), default="u@uwa")
+    posts_owned = db.relationship("TPost", back_populates="owner", foreign_keys="TPost.owner_id")
+
+
 class TPost(db.Model):
     """Narrow post model for tag counting only; full Post merged later from draft repo."""
 
     __tablename__ = "t_post"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), default="t")
+    owner_id = db.Column(db.Integer, db.ForeignKey("t_user.id"), nullable=True, index=True)
+    status = db.Column(db.String(20), default=POST_STATUS_OPEN, nullable=False)
     tags = db.relationship("Tag", secondary=post_tags, back_populates="posts")
+    owner = db.relationship("User", back_populates="posts_owned", foreign_keys=[owner_id])
 
 
 def tag_payload_rows():

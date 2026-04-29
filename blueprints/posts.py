@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from flask import Blueprint, Flask, jsonify, render_template_string
 
+from api.post_aggregates import post_detail_payload, post_list_payload
 from api.post_status import bp as post_status_slice
 
 bp = Blueprint("posts", __name__, url_prefix="/posts")
@@ -16,7 +17,12 @@ bp = Blueprint("posts", __name__, url_prefix="/posts")
 
 @bp.get("/")
 def list_posts_stub():
-    return jsonify({"items": [], "module": "posts", "note": "stub list"})
+    return jsonify(
+        {
+            "items": post_list_payload(),
+            "module": "posts",
+        }
+    )
 
 
 @bp.get("/create")
@@ -31,7 +37,12 @@ def create_form_stub():
 
 @bp.get("/<int:post_id>")
 def get_post_stub(post_id: int):
-    return jsonify({"id": post_id, "title": "stub", "status": "open"})
+    payload = post_detail_payload(post_id)
+
+    if payload is None:
+        return jsonify({"message": "Post not found"}), 404
+
+    return jsonify(payload)
 
 
 def register_posts_blueprints(app: Flask) -> None:

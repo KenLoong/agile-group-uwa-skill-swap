@@ -7,7 +7,10 @@
 # =============================================================================
 from __future__ import annotations
 
-from flask import Blueprint, render_template_string, request
+from flask import Blueprint, abort, current_app, jsonify, render_template_string, request
+from flask_login import login_user
+
+from api.tags_models import User, db
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -56,6 +59,30 @@ def verify_email_token(token: str):
 # -----------------------------------------------------------------------------
 # Health / internal — remove or protect before production
 # -----------------------------------------------------------------------------
+
+
+@bp.post("/test-login")
+def test_login_for_automated_clients():
+    """Establish a Flask-Login session for browser tests — disabled outside TESTING."""
+    if not current_app.config.get("TESTING"):
+        abort(404)
+    data = request.get_json(silent=True) or {}
+    uid_raw = data.get("user_id")
+    if uid_raw is None:
+        return jsonify({"ok": False, "message": "user_id required"}), 400
+    if isinstance(uid_raw, str) and uid_raw.strip().isdigit():
+        uid = int(uid_raw.strip())
+    elif isinstance(uid_raw, int):
+        uid = uid_raw
+    else:
+        return jsonify({"ok": False, "message": "invalid user_id"}), 400
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"ok": False, "message": "user not found"}), 404
+
+    login_user(user)
+    return jsonify({"ok": True})
 
 
 @bp.get("/_ping")

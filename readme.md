@@ -159,6 +159,14 @@ This contract covers the discover filtering endpoint, tag metadata endpoint, pub
 
 ---
 
+## Post lifecycle
+
+Skill posts use the lifecycle states `open`, `matched`, and `closed`.
+
+Contributor-facing rules are documented in [`docs/POST_LIFECYCLE.md`](docs/POST_LIFECYCLE.md). A static user-facing help page is available at [`pages/post-lifecycle-help.html`](pages/post-lifecycle-help.html).
+
+---
+
 ## 👥 Team Members
 
 | UWA ID | Name | GitHub Account |

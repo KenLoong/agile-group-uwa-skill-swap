@@ -1,5 +1,5 @@
 # =============================================================================
-# Application entry — blueprints: auth, posts, api, messages
+# Application entry — blueprints: auth, posts, api, messages, dashboard
 # =============================================================================
 # This module replaces a single monolithic `app.py` that mixed routes. Splitting
 # by feature area reduces merge conflicts when the team works in parallel and
@@ -12,12 +12,32 @@ import os
 from typing import Any
 
 from flask import Flask, jsonify
+from flask_login import LoginManager
 
 from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
-
-from api.tags_models import db
+from api.dashboard_api import bp as dashboard_api_bp
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
-from blueprints import auth, messages, posts
+from blueprints import auth, dashboard_page, messages, posts
+
+
+def _seed_categories_if_empty() -> None:
+    """
+    Populate default taxonomy on first boot: ``general`` (post FK sanity) plus
+    discover/dashboard buckets from product defaults.
+    """
+    defaults: list[tuple[str, str, int]] = [
+        (CATEGORY_SLUG_GENERAL, "General", 0),
+        ("coding", "Coding", 10),
+        ("languages", "Languages", 20),
+        ("music", "Music", 30),
+        ("sports", "Sports", 40),
+        ("communication", "Communication", 50),
+    ]
+    if Category.query.first() is None:
+        for slug, label, sort in defaults:
+            db.session.add(Category(slug=slug, label=label, sort_order=sort))
+        db.session.commit()
 
 def _configured_secret(value: object | None) -> str | None:
     """Return a non-empty secret value, or None when unset/blank."""
@@ -61,6 +81,7 @@ def create_app(
     app = Flask(__name__)
     app.config["TESTING"] = testing
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
     if test_config:
         app.config.update(test_config)
     app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
@@ -73,6 +94,17 @@ def create_app(
 
     db.init_app(app)
 
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "auth.login_form"
+
+    @login_manager.user_loader
+    def load_user(user_id: str) -> User | None:
+        if not user_id.strip().isdigit():
+            return None
+        out = db.session.get(User, int(user_id))
+        return out
+
     # -------------------------------------------------------------------------
     # Blueprint registration order: auth, posts (includes set-status), api, msgs
     # -------------------------------------------------------------------------
@@ -81,17 +113,21 @@ def create_app(
     api_pkg.register_api_blueprints(app)
     app.register_blueprint(messages.bp)
 
+    app.register_blueprint(dashboard_api_bp)
+    app.register_blueprint(dashboard_page.bp)
+
     @app.get("/")
     def root_index():
         return jsonify(
             {
                 "app": "uwa-skill-swap",
-                "blueprints": ["auth", "posts", "api", "messages"],
+                "blueprints": ["auth", "posts", "api", "messages", "dashboard"],
             }
         )
 
     with app.app_context():
         db.create_all()
+        _seed_categories_if_empty()
 
     return app
 

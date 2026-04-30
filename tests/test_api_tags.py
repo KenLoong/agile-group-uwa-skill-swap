@@ -17,7 +17,8 @@ import unittest
 from contextlib import contextmanager
 
 from api.app_factory import create_app
-from api.tags_models import TPost, Tag, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, Post, Tag, db
+from sqlalchemy import select
 
 
 # -----------------------------------------------------------------------------
@@ -43,14 +44,20 @@ def _create_tag(session, *, slug: str, label: str) -> Tag:
     return t
 
 
-def _create_post(session, title: str = "p") -> TPost:
-    p = TPost(title=title)
+def _general_category_id(sess) -> int:
+    cid = sess.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
+    assert cid is not None
+    return int(cid)
+
+
+def _create_post(session, title: str = "p") -> Post:
+    p = Post(title=title, category_id=_general_category_id(session))
     session.add(p)
     session.flush()
     return p
 
 
-def _link(session, post: TPost, tag: Tag) -> None:
+def _link(session, post: Post, tag: Tag) -> None:
     post.tags.append(tag)
 
 

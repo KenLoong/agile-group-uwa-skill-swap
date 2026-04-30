@@ -15,13 +15,18 @@ from flask import Flask, jsonify
 from flask_login import LoginManager
 
 from api.dashboard_api import bp as dashboard_api_bp
-from api.tags_models import Category, User, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
 from blueprints import auth, dashboard_page, messages, posts
 
 
 def _seed_categories_if_empty() -> None:
+    """
+    Populate default taxonomy on first boot: ``general`` (post FK sanity) plus
+    discover/dashboard buckets from product defaults.
+    """
     defaults: list[tuple[str, str, int]] = [
+        (CATEGORY_SLUG_GENERAL, "General", 0),
         ("coding", "Coding", 10),
         ("languages", "Languages", 20),
         ("music", "Music", 30),

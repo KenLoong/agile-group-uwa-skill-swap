@@ -3,7 +3,7 @@
 # =============================================================================
 # The post lifecycle endpoint used by dashboard JS used to be registered
 # next to the tag API. We pull it in here to group everything that mutates
-# TPost rows in one import graph for code review.
+# Post rows in one import graph for code review.
 # =============================================================================
 from __future__ import annotations
 

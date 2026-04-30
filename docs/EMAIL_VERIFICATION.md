@@ -1,7 +1,7 @@
 # Email verification (post-registration)
 
-This document describes the **UWA student email** confirmation flow for Skill-Swap.  
-Implementation lives in `auth/` and will be **wired to Flask** when the backend from the draft repository is integrated into this formal repo.
+This document describes the **UWA student email** confirmation flow for Skill-Swap.
+Implementation lives in `auth/` and is wired into the Flask auth blueprint through `blueprints/auth.py`.
 
 ## Goals
 
@@ -16,7 +16,7 @@ Implementation lives in `auth/` and will be **wired to Flask** when the backend 
 3. `EmailVerificationService.issue_for_new_user()` is called, which:
    - stores a one-time token (hashed) with expiry,
    - sends email via the configured **mail backend** (console in dev, SMTP in prod).
-4. The user opens the link: `/auth/verify?token=…` (exact route in Flask merge).  
+4. The user opens the link: `/auth/verify?token=…`.
 5. `verify_and_consume()` checks signature, hash, single-use, and TTL, then sets the user to verified.  
 6. If they never receive mail: **resend** from the “pending verification” page (throttled).
 
@@ -43,7 +43,8 @@ Implementation lives in `auth/` and will be **wired to Flask** when the backend 
 ## Testing
 
 ```bash
-python -m unittest tests.test_email_verification
+python -m unittest tests.test_auth_registration -v
+python -m unittest tests.test_email_verification -v
 ```
 
 For an interactive smoke, run `python -m auth.email_verification` to print a dev-console email.

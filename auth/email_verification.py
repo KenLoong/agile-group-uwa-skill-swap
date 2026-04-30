@@ -100,6 +100,10 @@ class _InMemoryTokenStore:
             self._by_hash.pop(r.token_hash, None)
         self._by_user.pop(user_id, None)
 
+    def clear(self) -> None:
+        self._by_user.clear()
+        self._by_hash.clear()
+        self._resend_map.clear()
 
 _store_singleton = _InMemoryTokenStore()
 
@@ -305,6 +309,9 @@ _HTML_TEMPLATE = (
 # Single shared instance for blueprints to import; swap store in unit tests
 default_service = EmailVerificationService(_store_singleton)
 
+def reset_default_verification_store() -> None:
+    """Clear the process-local verification store for isolated tests."""
+    _store_singleton.clear()
 
 def _smoke() -> None:
     """If run as `python -m auth.email_verification` — does not need Flask."""

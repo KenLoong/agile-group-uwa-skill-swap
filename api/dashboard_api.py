@@ -1,0 +1,77 @@
+# =============================================================================
+# GET/POST /api/dashboard/wanted  — persisted wanted-category list for dashboard
+# =============================================================================
+from __future__ import annotations
+
+from flask import Blueprint, jsonify, request
+
+from api.auth_identity import effective_user_id
+from api.tags_models import Category, User, db
+
+bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboard")
+
+
+@bp.get("/wanted")
+def get_wanted():
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    cats = Category.query.order_by(Category.sort_order, Category.id).all()
+    wanted_ids = sorted({c.id for c in user.wanted_categories})
+
+    return jsonify(
+        {
+            "categories": [{"id": c.id, "slug": c.slug, "label": c.label} for c in cats],
+            "wanted_ids": wanted_ids,
+        }
+    )
+
+
+@bp.post("/wanted")
+def save_wanted():
+    """Replace the caller's wanted category set from JSON { \"category_ids\": [ ... ] }."""
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    if not request.is_json:
+        return jsonify({"message": "application/json expected"}), 400
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"message": "JSON object expected"}), 400
+
+    cat_ids_raw = payload.get("category_ids", [])
+    if cat_ids_raw is None:
+        cat_ids_raw = []
+    if not isinstance(cat_ids_raw, list):
+        return jsonify({"message": "category_ids must be a list"}), 400
+
+    ids: list[int] = []
+    for item in cat_ids_raw:
+        if isinstance(item, int):
+            ids.append(item)
+        elif isinstance(item, str) and item.strip().isdigit():
+            ids.append(int(item.strip()))
+        else:
+            return jsonify({"message": "category_ids must contain integers"}), 400
+
+    uniq = sorted(set(ids))
+    if not uniq:
+        user.wanted_categories = []
+    else:
+        user.wanted_categories = Category.query.filter(Category.id.in_(uniq)).all()
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"ok": True, "count": len(user.wanted_categories)})
+

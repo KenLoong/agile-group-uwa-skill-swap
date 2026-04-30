@@ -2,22 +2,27 @@
 # Post, Category, Tag, and association baseline (aligned with project draft repo)
 # =============================================================================
 # Central place for discover/listing domain tables: category taxonomy, post
-# rows (with lifecycle), free-form tags, and the post_tags M2M. Application
-# code should treat these definitions as the single source of truth for column
+# rows (with lifecycle), free-form tags, post_tags M2M, dashboard wanted prefs.
+# Application code treats this module as the single source of truth for column
 # names and foreign keys ahead of Flask-Migrate history in later sprints.
 # =============================================================================
 from __future__ import annotations
 
 from datetime import datetime
 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, select
 
 db = SQLAlchemy()
 
-# ---------------------------------------------------------------------------
-# Lifecycle — values mirrored in docs/POST_LIFECYCLE.md
-# ---------------------------------------------------------------------------
+user_wanted_categories = db.Table(
+    "user_wanted_categories",
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("category_id", db.Integer, db.ForeignKey("category.id"), primary_key=True),
+)
+
+# Valid values for Post.status (POST /post/set-status)
 POST_STATUS_OPEN = "open"
 POST_STATUS_MATCHED = "matched"
 POST_STATUS_CLOSED = "closed"
@@ -25,12 +30,12 @@ POST_STATUS_VALUES = frozenset(
     {POST_STATUS_OPEN, POST_STATUS_MATCHED, POST_STATUS_CLOSED}
 )
 
-# Default category inserted by ensure_default_taxonomy() on empty databases.
+# Fallback category slug used when nothing else exists (FK bootstrap).
 CATEGORY_SLUG_GENERAL = "general"
 
 
 # ---------------------------------------------------------------------------
-# Association tables
+# Association tables — post ⇄ tags
 # ---------------------------------------------------------------------------
 post_tags = db.Table(
     "post_tags",
@@ -41,9 +46,8 @@ post_tags = db.Table(
 
 class Category(db.Model):
     """
-    High-level grouping for discover filters (e.g. Languages, Creative).
-
-    Posts must reference exactly one category; sort_order drives nav ordering.
+    Skill taxonomy row: discover grouping and dashboard wanted-category picks.
+    Posts must reference exactly one category.
     """
 
     __tablename__ = "category"
@@ -78,20 +82,28 @@ class Tag(db.Model):
         return f"<Tag {self.slug!r} id={self.id}>"
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """
-    Lightweight user row for FK ownership; extended later with auth/profile.
+    User row backing Flask-Login, post ownership, and dashboard wanted categories.
 
-    Matches draft schema table name ``user`` (reserved word — quoted by SQLite).
+    Matches table name ``user`` (SQLite quotes reserved identifiers as needed).
     """
 
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), default="u@uwa")
+    username = db.Column(db.String(80), unique=True, nullable=True)
 
     posts_owned = db.relationship(
-        "Post", back_populates="owner", foreign_keys="Post.owner_id"
+        "Post",
+        back_populates="owner",
+        foreign_keys="Post.owner_id",
+    )
+    wanted_categories = db.relationship(
+        "Category",
+        secondary=user_wanted_categories,
+        lazy=True,
     )
 
     def __repr__(self) -> str:
@@ -134,10 +146,10 @@ class Post(db.Model):
 
 def ensure_default_taxonomy() -> None:
     """
-    Ensure at least one category exists so INSERT into ``post`` can satisfy
-    ``category_id`` FK constraints on empty dev/test SQLite databases.
+    Insert only ``general`` when the category table is empty (tests / tooling).
 
-    Idempotent: if any category row exists, return without writes.
+    Application startup normally uses ``_seed_categories_if_empty()`` in ``app``
+    instead, which also adds discover/dashboard defaults.
     """
     n = db.session.scalar(select(func.count(Category.id)))
     if n:

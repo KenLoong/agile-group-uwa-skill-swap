@@ -55,6 +55,48 @@ class BaseSeleniumTest(unittest.TestCase):
             cls.driver.quit()
 
 
+class TestDiscoverPageFiltering(BaseSeleniumTest):
+    """
+    Selenium end-to-end tests for the discover page filtering flow.
+    
+    Setup Assumptions:
+    - The Flask application is running at a defined `self.base_url` (defaults to http://127.0.0.1:5000).
+    - The database is seeded with predictable data:
+        * At least one post in the 'Language' category containing 'Language Post' in its text.
+        * At least one post in the 'Coding' category containing 'Coding Post' in its text.
+    - The discover page (index `/`) contains a category pill with `data-category="language"`.
+    """
+    
+    def setUp(self):
+        self.base_url = os.environ.get('TEST_BASE_URL', 'http://127.0.0.1:5000')
+        self.driver.get(self.base_url)
+        self.driver.delete_all_cookies()
+
+    def test_discover_page_category_filtering(self):
+        # Navigate to discover page
+        self.driver.get(f'{self.base_url}/')
+        
+        wait = WebDriverWait(self.driver, 10)
+        
+        # Ensure the grid loads and displays posts from multiple categories initially
+        wait.until(EC.presence_of_element_located((By.ID, 'post-grid')))
+        grid_text_initial = self.driver.find_element(By.ID, 'post-grid').text
+        self.assertIn('Language Post', grid_text_initial, "Setup Assumption Failed: 'Language Post' missing")
+        self.assertIn('Coding Post', grid_text_initial, "Setup Assumption Failed: 'Coding Post' missing")
+        
+        # Click Language category
+        lang_btn = self.driver.find_element(By.CSS_SELECTOR, 'button[data-category="language"]')
+        lang_btn.click()
+        
+        # Wait for grid to update and assert visible card set matches expectations
+        wait.until(
+            lambda d: 'Language Post' in d.find_element(By.ID, 'post-grid').text and 'Coding Post' not in d.find_element(By.ID, 'post-grid').text
+        )
+        
+        grid_text_filtered = self.driver.find_element(By.ID, 'post-grid').text
+        self.assertIn('Language Post', grid_text_filtered)
+        self.assertNotIn('Coding Post', grid_text_filtered)
+
 class TestTaggedPostDetailRendering(BaseSeleniumTest):
     """
     Selenium end-to-end tests for verifying tag visibility on the post detail page.

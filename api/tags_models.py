@@ -3,10 +3,17 @@
 # =============================================================================
 from __future__ import annotations
 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, select
 
 db = SQLAlchemy()
+
+user_wanted_categories = db.Table(
+    "user_wanted_categories",
+    db.Column("user_id", db.Integer, db.ForeignKey("t_user.id"), primary_key=True),
+    db.Column("category_id", db.Integer, db.ForeignKey("t_category.id"), primary_key=True),
+)
 
 # Valid values for TPost.status (set via POST /post/set-status)
 POST_STATUS_OPEN = "open"
@@ -31,13 +38,29 @@ class Tag(db.Model):
     posts = db.relationship("TPost", secondary=post_tags, back_populates="tags")
 
 
-class User(db.Model):
+class Category(db.Model):
+    """Skill taxonomy row (discover grouping + dashboard wanted-category picks)."""
+
+    __tablename__ = "t_category"
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(40), unique=True, nullable=False)
+    label = db.Column(db.String(80), nullable=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+
+class User(UserMixin, db.Model):
     """Lightweight user row for post ownership checks in API slice tests."""
 
     __tablename__ = "t_user"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), default="u@uwa")
+    username = db.Column(db.String(80), unique=True, nullable=True)
     posts_owned = db.relationship("TPost", back_populates="owner", foreign_keys="TPost.owner_id")
+    wanted_categories = db.relationship(
+        "Category",
+        secondary=user_wanted_categories,
+        lazy=True,
+    )
 
 
 class TPost(db.Model):

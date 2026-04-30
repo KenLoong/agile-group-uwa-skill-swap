@@ -14,6 +14,7 @@ from typing import Any
 from flask import Flask, jsonify
 from flask_login import LoginManager
 
+from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
 from api.dashboard_api import bp as dashboard_api_bp
 from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
@@ -38,6 +39,39 @@ def _seed_categories_if_empty() -> None:
             db.session.add(Category(slug=slug, label=label, sort_order=sort))
         db.session.commit()
 
+def _configured_secret(value: object | None) -> str | None:
+    """Return a non-empty secret value, or None when unset/blank."""
+    if value is None:
+        return None
+
+    secret = str(value).strip()
+    return secret or None
+
+
+def _resolve_secret_key(app: Flask, *, testing: bool) -> str:
+    """Resolve the Flask secret key without using runtime fallbacks.
+
+    Normal runtime must provide SECRET_KEY through the environment or explicit
+    app config. Tests may use a fixed test-only value so unit tests remain
+    reproducible without committing real secrets.
+    """
+    configured = _configured_secret(app.config.get("SECRET_KEY"))
+    env_secret = _configured_secret(os.environ.get(ENV_SECRET_KEY))
+
+    if configured:
+        return configured
+
+    if env_secret:
+        return env_secret
+
+    if testing:
+        return TEST_SECRET_KEY
+
+    raise RuntimeError(
+        "SECRET_KEY must be set in the environment before starting the app "
+        "outside testing mode. Copy .env.example to .env and provide a long "
+        "random value."
+    )
 
 def create_app(
     test_config: dict[str, Any] | None = None,
@@ -47,14 +81,10 @@ def create_app(
     app = Flask(__name__)
     app.config["TESTING"] = testing
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.secret_key = os.environ.get("SECRET_KEY")
-    if testing and not app.secret_key:
-        app.secret_key = "__dev-placeholder-key-change-in-production__"
-    if not testing and not app.secret_key:
-        raise RuntimeError("SECRET_KEY must be set when not in testing mode.")
 
     if test_config:
         app.config.update(test_config)
+    app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
     if testing and "SQLALCHEMY_DATABASE_URI" not in app.config:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     if not testing and "SQLALCHEMY_DATABASE_URI" not in app.config:

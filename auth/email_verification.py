@@ -32,6 +32,7 @@ from auth.constants import (
     EMAIL_VERIFY_TOKEN_TTL_SECONDS,
     ENV_BASE_URL,
     ENV_EMAIL_FROM,
+    ENV_SECRET_KEY,
 )
 from auth.exceptions import (
     MailDispatchError,
@@ -104,7 +105,31 @@ _store_singleton = _InMemoryTokenStore()
 
 
 def _app_secret() -> bytes:
-    return (os.environ.get("SECRET_KEY") or "dev-only-change-in-production").encode()
+    """Return the configured application secret for token signing/hashing.
+
+    Email verification tokens must use the same secret as Flask sessions.
+    There is intentionally no development fallback here: tests should set
+    SECRET_KEY explicitly, and normal runtime should load it from the
+    environment.
+    """
+    secret = None
+
+    try:
+        from flask import current_app, has_app_context
+
+        if has_app_context():
+            secret = current_app.config.get("SECRET_KEY")
+    except RuntimeError:
+        secret = None
+
+    secret = secret or os.environ.get(ENV_SECRET_KEY)
+
+    if not secret:
+        raise RuntimeError(
+            "SECRET_KEY must be set before issuing or verifying email tokens."
+        )
+
+    return str(secret).encode("utf-8")
 
 
 def _hash_token(raw: str) -> str:

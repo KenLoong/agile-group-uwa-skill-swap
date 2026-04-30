@@ -30,7 +30,7 @@ Implementation lives in `auth/` and will be **wired to Flask** when the backend 
 | `EMAIL_FROM` | From header for all outbound mail. |
 | `EMAIL_BACKEND` | `console` (dev) or `smtp`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Used when `EMAIL_BACKEND=smtp`. |
-| `SECRET_KEY` | Used to hash tokens; must match on all workers. |
+| `SECRET_KEY` | Required outside tests. Used to sign and hash verification tokens; must match on all workers. |
 
 ## Security considerations (course-friendly checklist)
 

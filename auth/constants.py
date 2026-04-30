@@ -18,6 +18,13 @@ EMAIL_VERIFY_TOKEN_TTL_SECONDS = 48 * 60 * 60  # 48h — adjust in env for cours
 EMAIL_VERIFY_URL_QUERY_TOKEN = "token"
 EMAIL_VERIFY_URL_QUERY_USER = "uid"
 
+# Flask application secret key. Runtime must provide this outside tests.
+ENV_SECRET_KEY = "SECRET_KEY"
+
+# Fixed value for isolated unit tests only. Do not use for local development,
+# demos, staging, or production.
+TEST_SECRET_KEY = "test-only-secret-key"
+
 # Feature flags (string env, parsed in service)
 ENV_EMAIL_VERIFY_ENABLED = "EMAIL_VERIFICATION_ENABLED"
 ENV_EMAIL_VERIFY_REQUIRED_FOR_LOGIN = "REQUIRE_VERIFIED_EMAIL_TO_LOGIN"

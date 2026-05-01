@@ -166,50 +166,166 @@ def register_submit():
 def logout():
     return {"ok": True}, 200
 
+def _wants_html_response() -> bool:
+    """Return True when the client explicitly prefers HTML over JSON."""
+    best = request.accept_mimetypes.best_match(["text/html", "application/json"])
+    return best == "text/html"
+
+
+def _verification_result_html(
+    *,
+    title: str,
+    message: str,
+    status_label: str,
+    variant: str,
+    status_code: int,
+):
+    """Render a small browser-facing verification result page."""
+    return (
+        render_template_string(
+            """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · UWA Skill-Swap</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light min-vh-100 d-flex flex-column">
+  <nav class="navbar navbar-dark bg-dark shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="/auth/login">UWA Skill-Swap</a>
+    </div>
+  </nav>
+
+  <main class="flex-grow-1 py-5">
+    <div class="container col-lg-6 text-center">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-5">
+          <p class="text-uppercase small text-secondary fw-semibold mb-2">Email verification</p>
+          <h1 class="h3 text-{{ variant }} mb-3">{{ title }}</h1>
+          <p class="lead text-muted">{{ message }}</p>
+          <span class="badge text-bg-{{ variant }} mb-4">{{ status_label }}</span>
+          <div class="d-flex justify-content-center gap-2">
+            <a class="btn btn-primary" href="/auth/login">Go to login</a>
+            <a class="btn btn-outline-secondary" href="/auth/register">Register again</a>
+          </div>
+        </div>
+      </div>
+      <p class="small text-muted mt-4">
+        If this result looks wrong, request a new verification link or contact the project team.
+      </p>
+    </div>
+  </main>
+
+  <footer class="border-top py-3 mt-auto bg-white">
+    <div class="container text-center small text-muted">UWA Skill-Swap</div>
+  </footer>
+</body>
+</html>""",
+            title=title,
+            message=message,
+            status_label=status_label,
+            variant=variant,
+        ),
+        status_code,
+        {"Content-Type": "text/html; charset=utf-8"},
+    )
+
+
+def _verification_result_response(
+    *,
+    ok: bool,
+    status: str,
+    message: str,
+    status_code: int,
+    user_id: int | None = None,
+    email_confirmed: bool | None = None,
+):
+    """Return either HTML or JSON for a verification outcome."""
+    if _wants_html_response():
+        title_by_status = {
+            "verified": "Email verified",
+            "expired": "Verification link expired",
+            "invalid": "Verification link invalid",
+            "missing": "Verification token missing",
+            "not_found": "User not found",
+        }
+        variant_by_status = {
+            "verified": "success",
+            "expired": "warning",
+            "invalid": "danger",
+            "missing": "danger",
+            "not_found": "danger",
+        }
+
+        return _verification_result_html(
+            title=title_by_status.get(status, "Verification result"),
+            message=message,
+            status_label=status.replace("_", " "),
+            variant=variant_by_status.get(status, "secondary"),
+            status_code=status_code,
+        )
+
+    body: dict[str, object] = {
+        "ok": ok,
+        "status": status,
+        "message": message,
+    }
+
+    if user_id is not None:
+        body["user_id"] = user_id
+
+    if email_confirmed is not None:
+        body["email_confirmed"] = email_confirmed
+
+    return jsonify(body), status_code
 
 def _complete_email_verification(signed: str):
     if not signed:
-        return jsonify({"ok": False, "message": "Verification token is required."}), 400
+        return _verification_result_response(
+            ok=False,
+            status="missing",
+            message="Verification token is required.",
+            status_code=400,
+        )
 
     try:
         user_id = default_service.verify_and_consume(signed)
     except TokenExpiredError:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "status": "expired",
-                    "message": "Verification link expired.",
-                }
-            ),
-            400,
+        return _verification_result_response(
+            ok=False,
+            status="expired",
+            message="This verification link has expired. Please request a new link.",
+            status_code=400,
         )
     except TokenInvalidError:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "status": "invalid",
-                    "message": "Verification link is invalid.",
-                }
-            ),
-            400,
+        return _verification_result_response(
+            ok=False,
+            status="invalid",
+            message="This verification link is invalid or has already been used.",
+            status_code=400,
         )
 
     user = db.session.get(User, int(user_id))
     if user is None:
-        return jsonify({"ok": False, "message": "User not found."}), 404
+        return _verification_result_response(
+            ok=False,
+            status="not_found",
+            message="The account linked to this verification token could not be found.",
+            status_code=404,
+        )
 
     user.email_confirmed = True
     db.session.commit()
 
-    return jsonify(
-        {
-            "ok": True,
-            "status": "verified",
-            "user_id": user.id,
-            "email_confirmed": True,
-        }
+    return _verification_result_response(
+        ok=True,
+        status="verified",
+        message="Your UWA student email has been confirmed. You can now continue to login.",
+        status_code=200,
+        user_id=user.id,
+        email_confirmed=True,
     )
 
 

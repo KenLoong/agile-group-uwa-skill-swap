@@ -107,6 +107,12 @@ class User(UserMixin, db.Model):
         secondary=user_wanted_categories,
         lazy=True,
     )
+    interests_sent = db.relationship(
+        "Interest",
+        foreign_keys="Interest.sender_id",
+        lazy=True,
+        back_populates="sender",
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r}>"
@@ -138,12 +144,37 @@ class Post(db.Model):
     category = db.relationship("Category", back_populates="posts")
     tags = db.relationship("Tag", secondary=post_tags, back_populates="posts", lazy=True)
     owner = db.relationship("User", back_populates="posts_owned", foreign_keys=[owner_id])
+    interests_received = db.relationship(
+        "Interest",
+        foreign_keys="Interest.post_id",
+        lazy=True,
+        back_populates="post",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return (
             f"<Post id={self.id} title={self.title[:32]!r} "
             f"status={self.status!r} category_id={self.category_id}>"
         )
+
+
+class Interest(db.Model):
+    """
+    User expressed interest on another user's listing — used by recommendations
+    to exclude duplicates and later for interest-received dashboard views.
+    """
+
+    __tablename__ = "interest"
+    __table_args__ = (db.UniqueConstraint("sender_id", "post_id", name="uq_interest_sender_post"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False, index=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    sender = db.relationship("User", foreign_keys=[sender_id], back_populates="interests_sent")
+    post = db.relationship("Post", foreign_keys=[post_id], back_populates="interests_received")
 
 
 def ensure_default_taxonomy() -> None:

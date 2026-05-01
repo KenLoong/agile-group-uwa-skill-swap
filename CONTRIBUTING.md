@@ -7,7 +7,7 @@ Thank you for helping with this course project. This file is a lightweight guide
 1. Pull the latest `master` (or the integration branch your tutor named for the iteration).
 2. Know which **Flask blueprint** owns your URL, so you edit the right file and reduce merge pain:
    * **`blueprints/auth.py`** — login, register, verification flows under `/auth/…`.
-   * **`blueprints/posts.py`** — listing CRUD, `post/set-status` registration, and HTML stubs under `/posts/…`.
+   * **`blueprints/posts.py`** — create-post form, **HTML** detail at `GET /posts/<id>`, aggregate **JSON** at `GET /posts/<id>/json`, list envelope at `GET /posts/`, plus `POST /post/set-status` wiring.
    * **`blueprints/api.py`** — JSON discover / tags and lightweight `/api/health` style helpers.
    * **`blueprints/messages.py`** — inbox and thread JSON under `/messages/…` (stubs until the messaging model lands).
    The process-wide factory lives in the root [`app.py`](app.py); tests may still import [`api.app_factory.create_app`](api/app_factory.py) as a thin wrapper.

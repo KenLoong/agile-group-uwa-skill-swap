@@ -109,7 +109,7 @@ class TestPostAggregateHelpers(unittest.TestCase):
             p.tags.append(coding)
             post_id = p.id
 
-        r = self.client.get(f"/posts/{post_id}")
+        r = self.client.get(f"/posts/{post_id}/json")
         self.assertEqual(r.status_code, 200)
 
         data = _json(r)
@@ -143,7 +143,7 @@ class TestPostAggregateHelpers(unittest.TestCase):
         self.assertIsNotNone(row.get("timestamp_iso"))
 
     def test_post_detail_route_returns_404_for_missing_post(self) -> None:
-        r = self.client.get("/posts/999")
+        r = self.client.get("/posts/999/json")
 
         self.assertEqual(r.status_code, 404)
         self.assertEqual(_json(r)["message"], "Post not found")

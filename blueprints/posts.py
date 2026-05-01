@@ -1,8 +1,5 @@
 # =============================================================================
-# Blueprint: posts  — listings, create flow, lifecycle (set-status)
-# =============================================================================
-# Create-post honours Flask-Login; list/detail stubs stay JSON-first until HTML
-# detail rendering ships in its own issue.
+# Blueprint: posts — create flow, HTML + JSON detail, lifecycle (set-status)
 # =============================================================================
 from __future__ import annotations
 
@@ -12,7 +9,16 @@ from sqlalchemy import select
 
 from api.post_aggregates import post_detail_payload, post_list_payload
 from api.post_status import bp as post_status_slice
-from api.tags_models import Category, POST_STATUS_OPEN, Post, Tag, db
+from api.tags_models import (
+    POST_STATUS_CLOSED,
+    POST_STATUS_MATCHED,
+    POST_STATUS_OPEN,
+    Category,
+    Post,
+    Tag,
+    User,
+    db,
+)
 from api.taxonomy_helpers import normalize_tag_slug
 from post_forms import CreatePostForm
 
@@ -22,6 +28,12 @@ bp = Blueprint(
     url_prefix="/posts",
     template_folder="../templates",
 )
+
+_LIFECYCLE_BADGE_META: dict[str, tuple[str, str]] = {
+    POST_STATUS_OPEN: ("text-bg-success", "Open"),
+    POST_STATUS_MATCHED: ("text-bg-info", "Matched"),
+    POST_STATUS_CLOSED: ("text-bg-secondary", "Closed"),
+}
 
 
 def _category_choices() -> list[tuple[int, str]]:
@@ -55,6 +67,50 @@ def _sync_post_tags(post: Post, tags_raw: str | None) -> None:
             post.tags.append(tag)
 
 
+def _author_display(owner: User | None) -> str:
+    if owner is None:
+        return "Anonymous"
+    if owner.username and str(owner.username).strip():
+        return str(owner.username).strip()
+    em = owner.email or ""
+    if em and "@" in em:
+        return em.split("@", 1)[0]
+    return f"Member #{owner.id}"
+
+
+def _lifecycle_bootstrap_pair(status: str | None) -> tuple[str, str]:
+    raw = status or POST_STATUS_OPEN
+    st = raw.strip().lower()
+    if st in _LIFECYCLE_BADGE_META:
+        return _LIFECYCLE_BADGE_META[st]
+    pretty = raw.strip().title() if isinstance(raw, str) and raw.strip() else st.title()
+    return ("text-bg-warning", pretty[:28])
+
+
+def _post_detail_surface(post_id: int) -> dict | None:
+    """ORM snapshot packaged for ``post_detail.html``."""
+    post = db.session.get(Post, post_id)
+    if post is None:
+        return None
+
+    cat = post.category
+    tags = sorted(post.tags, key=lambda t: (str(t.label).lower(), str(t.slug).lower()))
+
+    badge_class, badge_label = _lifecycle_bootstrap_pair(post.status)
+    ts = post.timestamp
+    posted_at_human = ts.strftime("%d %b %Y · %H:%M UTC") if ts is not None else None
+
+    return {
+        "post": post,
+        "category": cat,
+        "tags": tags,
+        "author_label": _author_display(post.owner),
+        "badge_class": badge_class,
+        "badge_label": badge_label,
+        "posted_at_human": posted_at_human,
+    }
+
+
 @bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create_skill_post():
@@ -71,24 +127,20 @@ def create_skill_post():
             flash("That category does not exist. Pick another.", "warning")
             return render_template("create_post.html", form=form)
 
-        post = Post(
+        post_obj = Post(
             title=form.title.data.strip(),
             description=form.description.data.strip(),
             category_id=int(form.category_id.data),
             owner_id=int(current_user.get_id()),
             status=POST_STATUS_OPEN,
         )
-        db.session.add(post)
+        db.session.add(post_obj)
         db.session.flush()
-        _sync_post_tags(post, form.tags.data)
+        _sync_post_tags(post_obj, form.tags.data)
 
         db.session.commit()
-        flash(
-            f'Published post #{post.id}. Open `/posts/{post.id}` for machine-readable JSON until the HTML '
-            "detail page ships.",
-            "success",
-        )
-        return redirect(url_for("posts.create_skill_post"))
+        flash('Your listing is published. You can bookmark this page.', "success")
+        return redirect(url_for("posts.post_detail_html", post_id=post_obj.id))
 
     return render_template("create_post.html", form=form)
 
@@ -103,20 +155,26 @@ def list_posts_stub():
     )
 
 
-@bp.get("/<int:post_id>")
-def get_post_stub(post_id: int):
+@bp.get("/<int:post_id>/json")
+def post_detail_json(post_id: int):
+    """Aggregate-shaped JSON for AJAX, tests, and discover clients."""
     payload = post_detail_payload(post_id)
-
     if payload is None:
         return jsonify({"message": "Post not found"}), 404
 
     return jsonify(payload)
 
 
+@bp.get("/<int:post_id>")
+def post_detail_html(post_id: int):
+    """Listing detail: category label, lifecycle badge, tag pills, prose body."""
+    surface = _post_detail_surface(post_id)
+    if surface is None:
+        return render_template("post_not_found.html"), 404
+    return render_template("post_detail.html", **surface)
+
+
 def register_posts_blueprints(app: Flask) -> None:
-    """
-    Register HTML/JSON `posts` blueprint plus the post_status slice
-    (`POST /post/set-status`).
-    """
+    """Register posts blueprint plus ``POST /post/set-status`` slice."""
     app.register_blueprint(bp)
     app.register_blueprint(post_status_slice)

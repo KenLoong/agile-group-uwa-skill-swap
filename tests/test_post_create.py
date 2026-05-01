@@ -44,9 +44,21 @@ class TestPostCreate(unittest.TestCase):
             follow_redirects=False,
         )
         self.assertEqual(r_post.status_code, 302)
-        rv = self.client.get("/posts/create")
-        body = rv.get_data(as_text=True)
-        self.assertRegex(body, r"Published post #\d+", msg="Expected success flash")
+        loc = unescape(r_post.headers.get("Location", ""))
+        mloc = re.search(r"/posts/(\d+)(?:\?|$)", loc)
+        self.assertIsNotNone(mloc, msg=f"Unexpected redirect {loc!r}")
+        assert mloc is not None
+        pid = int(mloc.group(1))
+
+        r_view = self.client.get(loc, follow_redirects=True)
+        self.assertEqual(r_view.status_code, 200)
+        html = r_view.get_data(as_text=True)
+        self.assertIn("Peer tutoring calculus", html)
+        self.assertIn("Open", html)
+        self.assertIn("tag-pill", html)
+        self.assertIn(">calculus</span>", html)
+        self.assertIn(">MATH</span>", html)
+        self.assertIn("published", html.lower())
 
         with self.app.app_context():
             p = db.session.scalar(
@@ -54,6 +66,7 @@ class TestPostCreate(unittest.TestCase):
             )
             self.assertIsNotNone(p)
             assert p is not None
+            self.assertEqual(p.id, pid)
             self.assertEqual(p.category_id, int(cid))
             self.assertEqual(p.status, "open")
             slug_rows = sorted(t.slug for t in p.tags)

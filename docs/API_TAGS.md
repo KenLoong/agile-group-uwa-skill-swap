@@ -46,9 +46,13 @@ GET /api/tags HTTP/1.1
 - SQL uses an **INNER** join from tags to posts so unused tag definitions do not appear.
 - String normalisation helpers for slug rules live in `api/taxonomy_helpers.py`; lifecycle validation reused from `POST_STATUS_VALUES`.
 
-## Related: post stubs (`GET /posts/`, detail JSON)
+## Related: posts module routes
 
-Aggregate helpers (`api/post_aggregates.py`) return per-post payloads used by blueprint stubs:
+- **`GET /posts/`** returns the JSON list envelope (aggregate payloads).
+- **`GET /posts/<id>`** serves the **Bootstrap HTML** listing view (category label, lifecycle badge, tag pills, prose description).
+- **`GET /posts/<id>/json`** returns the aggregate JSON document reused by AJAX clients / tests (shape described below).
+
+Aggregate helpers (`api/post_aggregates.py`) return per-post payloads for list/detail JSON:
 
 - **`title`**, **`description`**, **`status`**, **`owner_id`**.
 - **`category`**: `{ "slug", "label" }` from the joined category row (defaults include `general` after taxonomy bootstrap).

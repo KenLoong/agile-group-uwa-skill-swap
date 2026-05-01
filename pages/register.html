@@ -40,10 +40,9 @@
                     <div class="card-body p-4 p-md-5">
                         <h1 class="h4 mb-2 text-center">Create an account</h1>
                         <p class="small text-muted text-center mb-4">
-                            Mock signup only — use your <code class="small">@student.uwa.edu.au</code> email. After the backend
-                            merge, creating an account will send a <strong>verification link</strong> to that inbox; you must
-                            confirm before the server treats your address as owned (and before optional
-                            <code>REQUIRE_VERIFIED_EMAIL_TO_LOGIN</code> blocks sign-in). See
+                            Use your <code class="small">@student.uwa.edu.au</code> email. The Flask registration flow creates an
+                            unverified account and sends a <strong>verification link</strong> to that inbox. You must confirm before
+                            the server treats your address as owned. See
                             <a href="verify-pending.html" class="text-decoration-none">pending verification</a> copy for the user-facing
                             story, and <code>docs/EMAIL_VERIFICATION.md</code> for implementers.
                         </p>
@@ -70,7 +69,7 @@
                                 <input type="password" class="form-control" id="reg-confirm" name="confirm_password"
                                        autocomplete="new-password">
                             </div>
-                            <button type="button" class="btn btn-primary w-100">Create account (mock)</button>
+                            <button type="button" class="btn btn-primary w-100">Create account (verification required)</button>
                         </form>
                         <p class="small text-muted text-center mt-3 mb-0">
                             Already registered? <a href="login.html">Log in</a>

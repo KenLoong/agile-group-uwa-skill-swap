@@ -20,6 +20,22 @@ Implementation lives in `auth/` and is wired into the Flask auth blueprint throu
 5. `verify_and_consume()` checks signature, hash, single-use, and TTL, then sets the user to verified.  
 6. If they never receive mail: **resend** from the “pending verification” page (throttled).
 
+## Browser-facing verification results
+
+When a student opens a verification link from email, the browser receives a human-readable result page.
+
+Supported outcomes:
+
+| Status | Meaning |
+| --- | --- |
+| `verified` | The token was valid and the account email was confirmed. |
+| `expired` | The token existed but exceeded the configured TTL. |
+| `invalid` | The token was malformed, replayed, or failed signature validation. |
+| `missing` | The request did not include a token. |
+| `not_found` | The token was valid but the linked user row no longer exists. |
+
+API-style clients and unit tests can still receive JSON responses. Browser requests that prefer `text/html` receive an HTML result page.
+
 ## Environment variables
 
 | Variable | Meaning |
@@ -43,6 +59,7 @@ Implementation lives in `auth/` and is wired into the Flask auth blueprint throu
 ## Testing
 
 ```bash
+python -m unittest tests.test_auth_verify_pages -v
 python -m unittest tests.test_auth_registration -v
 python -m unittest tests.test_email_verification -v
 ```

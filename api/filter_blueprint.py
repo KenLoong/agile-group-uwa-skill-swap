@@ -3,6 +3,10 @@
 # =============================================================================
 # Mirrors docs/API_CONTRACTS.md and demo-for-agile-develop behaviour. Owned by
 # Posts & Discovery; registered alongside other /api/* blueprints.
+#
+# Sort branches (deterministic ORDER BY, Member 2 Issue #5 tie-break fixes) live
+# in api.discover_ordering.apply_discover_sort so paging stays stable across DBs
+# and across equal like_count / Interest-count / timestamp collisions.
 # =============================================================================
 from __future__ import annotations
 
@@ -10,10 +14,11 @@ from datetime import datetime
 from typing import Any
 
 from flask import Blueprint, jsonify, request, url_for
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
-from api.tags_models import Category, Interest, Post, Tag, db
+from api.discover_ordering import apply_discover_sort
+from api.tags_models import Category, Post, Tag, db
 
 bp = Blueprint("discover_filter", __name__, url_prefix="/api")
 
@@ -116,16 +121,7 @@ def discover_filter_query(
         like = f"%{q_text}%"
         q = q.filter(or_(Post.title.ilike(like), Post.description.ilike(like)))
 
-    if sort == "likes":
-        q = q.order_by(Post.like_count.desc(), Post.timestamp.desc(), Post.id.desc())
-    elif sort == "popular":
-        q = (
-            q.outerjoin(Interest, Interest.post_id == Post.id)
-            .group_by(Post.id)
-            .order_by(func.count(Interest.id).desc(), Post.timestamp.desc(), Post.id.desc())
-        )
-    else:
-        q = q.order_by(Post.timestamp.desc(), Post.id.desc())
+    q = apply_discover_sort(q, sort)
 
     return q.options(
         joinedload(Post.category),

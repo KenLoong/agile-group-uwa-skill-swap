@@ -163,6 +163,27 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
 }
 ```
 
+## Sort semantics
+
+When `sort` is **`likes`**, the server MUST apply a **fully deterministic** `ORDER BY` so equal `like_count` values never produce undefined order across SQLite, PostgreSQL, or paginated requests. Canonical tie-break sequence:
+
+1. `like_count` descending (more likes first)
+2. `timestamp` descending (newer first among ties on count)
+3. `post id` descending (stable final tie-breaker)
+
+When `sort` is **`newest`** (including the fallback for invalid modes), canonical order is:
+
+1. `timestamp` descending  
+2. `post id` descending when timestamps collide (imports, naive datetimes, or duplicated clock values).
+
+When `sort` is **`popular`**, ranking uses **`COUNT`** of **`Interest`** rows per post (`outerjoin` + `GROUP BY`). Tie-break sequence:
+
+1. Interest count descending  
+2. `timestamp` descending  
+3. `post id` descending  
+
+Implementations MUST keep **`id DESC` as the ultimate tie-break** in all shipped sort modes served by `/api/filter` so paginated slices stay stable.
+
 ## Error behaviour
 
 - Invalid `sort` should fall back to `newest`.

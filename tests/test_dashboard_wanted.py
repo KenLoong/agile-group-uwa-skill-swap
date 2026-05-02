@@ -12,31 +12,21 @@ from __future__ import annotations
 
 import json
 import unittest
-from contextlib import contextmanager
 
-from api.app_factory import create_app
 from api.tags_models import Category, User, db
+from tests.helpers import BaseTestCase, session_scope as _session_scope
 
 
-@contextmanager
-def _session_scope(app):
-    with app.app_context():
-        try:
-            yield db.session
-            db.session.commit()
-        except Exception:  # noqa: BLE001
-            db.session.rollback()
-            raise
+# Removed local _session_scope in favor of the shared helper from tests.helpers
 
 
 def _hdr_uid(n: int) -> dict[str, str]:
     return {"X-User-Id": str(n)}
 
 
-class TestDashboardWantedAuthentication(unittest.TestCase):
+class TestDashboardWantedAuthentication(BaseTestCase):
     def setUp(self) -> None:
-        self.app = create_app(testing=True)
-        self.client = self.app.test_client()
+        super().setUp()
 
     def test_get_wanted_401_without_identity(self) -> None:
         r = self.client.get("/api/dashboard/wanted")
@@ -71,10 +61,9 @@ class TestDashboardWantedAuthentication(unittest.TestCase):
         self.assertIn("/auth/login", loc)
 
 
-class TestDashboardWantedValidation(unittest.TestCase):
+class TestDashboardWantedValidation(BaseTestCase):
     def setUp(self) -> None:
-        self.app = create_app(testing=True)
-        self.client = self.app.test_client()
+        super().setUp()
         with _session_scope(self.app) as s:
             s.add(User(id=1, email="a@student.uwa.edu.au"))
 
@@ -115,10 +104,9 @@ class TestDashboardWantedValidation(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
 
 
-class TestDashboardWantedPersistence(unittest.TestCase):
+class TestDashboardWantedPersistence(BaseTestCase):
     def setUp(self) -> None:
-        self.app = create_app(testing=True)
-        self.client = self.app.test_client()
+        super().setUp()
         with _session_scope(self.app) as s:
             s.add(User(id=1, email="a@student.uwa.edu.au"))
             s.add(User(id=2, email="b@student.uwa.edu.au"))
@@ -242,10 +230,9 @@ class TestDashboardWantedPersistence(unittest.TestCase):
         self.assertEqual(j2["wanted_ids"], [c2])
 
 
-class TestDashboardWantedFlaskLoginSession(unittest.TestCase):
+class TestDashboardWantedFlaskLoginSession(BaseTestCase):
     def setUp(self) -> None:
-        self.app = create_app(testing=True)
-        self.client = self.app.test_client()
+        super().setUp()
         with _session_scope(self.app) as s:
             s.add(User(id=7, email="seven@student.uwa.edu.au"))
 

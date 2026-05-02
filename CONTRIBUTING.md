@@ -50,4 +50,4 @@ The repository includes a root [`.editorconfig`](.editorconfig) so Python, HTML,
 
 ## Contact
 
-Use your team’s agreed channel (Canvas, Teams, or GitHub Discussions) for day-to-day questions. This file is for repository hygiene and pointers only.
+Use Teams for day-to-day questions. This file is for repository hygiene and pointers only.

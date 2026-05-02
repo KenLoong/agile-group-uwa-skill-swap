@@ -19,6 +19,7 @@ from api.dashboard_api import bp as dashboard_api_bp
 from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
 from blueprints import auth, dashboard_page, messages, posts
+from security.csrf import init_csrf
 
 
 def _seed_categories_if_empty() -> None:
@@ -84,7 +85,10 @@ def create_app(
 
     if test_config:
         app.config.update(test_config)
+
     app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
+    init_csrf(app)
+    
     if testing and "SQLALCHEMY_DATABASE_URI" not in app.config:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     if not testing and "SQLALCHEMY_DATABASE_URI" not in app.config:

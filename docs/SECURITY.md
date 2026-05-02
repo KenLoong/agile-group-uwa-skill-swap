@@ -36,6 +36,34 @@ SECRET_KEY=<generated-value>
 
 Do not commit `.env`.
 
+## CSRF policy
+
+Flask-WTF CSRF support is initialised through `security/csrf.py`.
+
+The project uses the following standard AJAX headers:
+
+```text
+X-CSRFToken
+X-CSRF-Token
+```
+
+Dynamic templates should expose the token through:
+
+```html
+<meta name="csrf-token" content="{{ csrf_token() }}">
+```
+
+Browser JavaScript should read this meta tag and send the token in the `X-CSRFToken` header for AJAX `POST` requests.
+
+Current policy:
+
+- FlaskForm submissions validate their own CSRF tokens through hidden form fields.
+- AJAX routes should send `X-CSRFToken`.
+- JSON CSRF errors should return a response with `error: "csrf_failed"` and a human-readable `message`.
+- HTML/browser CSRF errors should show a readable security-check page.
+
+`WTF_CSRF_CHECK_DEFAULT` is currently set to `False` in the central helper. This avoids accidentally breaking JSON API routes while they are still being finalised. Routes that require explicit CSRF enforcement can opt in as they are completed.
+
 ## Email verification tokens
 
 Email verification token hashes and signatures use the configured application secret. This means:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from flask import Blueprint, Flask, jsonify
 
+from api.filter_blueprint import bp as discover_filter_bp
 from api.tags_blueprint import bp as tags_json_blueprint
 
 bp = Blueprint("api_extra", __name__, url_prefix="/api")
@@ -21,14 +22,13 @@ def api_health():
 
 @bp.get("/version")
 def api_version():
-    return jsonify({"name": "skill-swap-api", "slice": "tags+v1"})
+    return jsonify({"name": "skill-swap-api", "slice": "tags+filter+v1"})
 
 
 def register_api_blueprints(app: Flask) -> None:
     """
-    Register tag cloud + cacheable discover JSON. The tags blueprint already
-    declares url_prefix `/api`, so we register it at app root; `api_extra`
-    also uses `/api` — only different route names (health vs tags).
+    Register tag cloud, discover `/api/filter`, and lightweight `/api/health` URLs.
     """
     app.register_blueprint(tags_json_blueprint)
+    app.register_blueprint(discover_filter_bp)
     app.register_blueprint(bp)

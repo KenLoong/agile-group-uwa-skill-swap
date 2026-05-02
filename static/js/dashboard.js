@@ -8,6 +8,18 @@
     var $saveStatus = $('#wanted-save-status');
     var saveTimer = null;
 
+    function csrfTokenFromMeta() {
+        var el = document.querySelector('meta[name="csrf-token"]');
+        if (!el) {
+            return null;
+        }
+        var token = el.getAttribute('content');
+        if (!token || token === 'empty' || token === 'fixme') {
+            return null;
+        }
+        return token;
+    }
+
     if (!$catBar.length) {
         return;
     }
@@ -39,6 +51,7 @@
             url: saveUrl,
             method: 'POST',
             contentType: 'application/json',
+            headers: csrfTokenFromMeta() ? { 'X-CSRFToken': csrfTokenFromMeta() } : {},
             data: JSON.stringify({ category_ids: catIds }),
         }).done(function (data) {
             if (data && data.ok) {

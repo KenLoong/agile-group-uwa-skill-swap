@@ -61,6 +61,41 @@
       </div>
     </section>
 
+    <section class="card shadow-sm mt-4">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-2">Interest received</h2>
+        <p class="small text-muted mb-3">People who clicked interest on <strong>your</strong> listings (newest first).</p>
+
+        {% if incoming_interests %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">Your listing</th>
+                <th scope="col">Interested user</th>
+                <th scope="col">Category</th>
+                <th scope="col">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in incoming_interests %}
+              <tr>
+                <td><a href="{{ url_for('posts.get_post_stub', post_id=row.post['id']) }}">{{ row.post['title'] }}</a></td>
+                <td>{{ row.sender['username'] or row.sender['email'] }}</td>
+                <td><span class="badge text-bg-light border">{{ row.category['label'] }}</span></td>
+                <td class="text-secondary small">{{ row.at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-secondary mt-2 mb-0">JSON: <code>/api/dashboard/interest-received</code></p>
+        {% else %}
+        <p class="small text-secondary mb-0">No incoming interest requests yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

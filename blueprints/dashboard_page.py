@@ -6,7 +6,9 @@ from __future__ import annotations
 from flask import Blueprint, abort, render_template
 from flask_login import current_user, login_required
 
+from api.dashboard_interest_received import DEFAULT_INTEREST_RECEIVED_LIMIT, interest_received_rows
 from api.recommendations import DEFAULT_RECOMMENDATION_LIMIT, recommended_post_payloads
+from api.tags_models import Category, User, db
 
 bp = Blueprint("dashboard_page", __name__)
 
@@ -21,10 +23,12 @@ def dashboard():
         abort(404)
     wanted_ids = {c.id for c in user.wanted_categories}
     rec_posts = recommended_post_payloads(uid, limit=DEFAULT_RECOMMENDATION_LIMIT)
+    incoming_interests = interest_received_rows(uid, limit=DEFAULT_INTEREST_RECEIVED_LIMIT)
     return render_template(
         "dashboard.html",
         all_cats=all_cats,
         wanted_ids=wanted_ids,
         save_url="/api/dashboard/wanted",
         rec_posts=rec_posts,
+        incoming_interests=incoming_interests,
     )

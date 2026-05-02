@@ -6,6 +6,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from api.auth_identity import effective_user_id
+from api.dashboard_interest_received import clamp_interest_received_limit, interest_received_rows
 from api.recommendations import clamp_recommendation_limit, recommended_post_payloads
 from api.tags_models import Category, User, db
 
@@ -91,4 +92,21 @@ def get_recommendations():
     posts = recommended_post_payloads(uid, limit=lim)
 
     return jsonify({"posts": posts, "meta": {"count": len(posts), "limit": lim}})
+
+
+@bp.get("/interest-received")
+def get_interest_received():
+    """Summaries of users who expressed interest on posts owned by the caller."""
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    lim = clamp_interest_received_limit(request.args.get("limit", type=int))
+    items = interest_received_rows(uid, limit=lim)
+
+    return jsonify({"items": items, "meta": {"count": len(items), "limit": lim}})
 

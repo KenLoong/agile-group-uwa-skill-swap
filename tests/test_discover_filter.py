@@ -95,6 +95,36 @@ class TestDiscoverFilterApi(unittest.TestCase):
         titles = [p["title"] for p in data["posts"] if p["title"].startswith("High likes")]
         self.assertEqual(titles, ["High likes newer", "High likes older"])
 
+    def test_sort_likes_same_score_and_same_timestamp_orders_by_id_desc(self) -> None:
+        """Tie on like_count + timestamp must not yield undefined order across DBs/pages."""
+        with _session(self.app) as s:
+            ux = User(id=701, email="tie702@student.uwa.edu.au", username="tie702")
+            s.add(ux)
+            cid = s.scalar(select(Category.id).where(Category.slug == "languages"))
+            assert cid is not None
+            ts = datetime(2026, 8, 1, 15, 0, 0)
+            for suffix in ("low", "mid", "high"):
+                s.add(
+                    Post(
+                        title=f"TIE-ID-{suffix}",
+                        description="same stats",
+                        category_id=int(cid),
+                        owner_id=701,
+                        like_count=11,
+                        timestamp=ts,
+                    )
+                )
+
+        data = json.loads(
+            self.client.get("/api/filter?sort=likes&category=languages").get_data(as_text=True)
+        )
+        tie_titles = [p["title"] for p in data["posts"] if p["title"].startswith("TIE-ID-")]
+        self.assertEqual(len(tie_titles), 3)
+        ids = [
+            next(int(p["id"]) for p in data["posts"] if p["title"] == t) for t in tie_titles
+        ]
+        self.assertEqual(ids, sorted(ids, reverse=True), "Higher post id must rank first when counts and timestamps match")
+
     def test_sort_popular_by_interest_count(self) -> None:
         with _session(self.app) as s:
             ua = User(id=10, email="a10@student.uwa.edu.au", username="poster10")
@@ -131,6 +161,47 @@ class TestDiscoverFilterApi(unittest.TestCase):
         top = [p["title"] for p in data["posts"] if p["title"].endswith("interest")]
         self.assertEqual(top[0], "Hot interest")
 
+    def test_sort_popular_equal_interests_same_timestamp_orders_by_id_desc(self) -> None:
+        """Equal Interest counts + same timestamp rely on Post.id descending."""
+        with _session(self.app) as s:
+            ua = User(id=820, email="o820@student.uwa.edu.au", username="o820")
+            for idx, uid in enumerate((821, 822, 823, 824), start=1):
+                s.add(User(id=uid, email=f"u{idx}81@student.uwa.edu.au", username=f"i{uid}"))
+            s.add(ua)
+            cid = s.scalar(select(Category.id).where(Category.slug == "coding"))
+            assert cid is not None
+            ts = datetime(2026, 10, 1, 14, 0, 0)
+            p_early = Post(
+                title="POP-EARLY",
+                description="popular tie",
+                category_id=int(cid),
+                owner_id=820,
+                timestamp=ts,
+            )
+            p_late = Post(
+                title="POP-LATE",
+                description="popular tie",
+                category_id=int(cid),
+                owner_id=820,
+                timestamp=ts,
+            )
+            s.add_all([p_early, p_late])
+            s.flush()
+            # Two interests each so COUNT ties before timestamp/id keys apply.
+            s.add_all(
+                [
+                    Interest(sender_id=821, post_id=p_early.id),
+                    Interest(sender_id=822, post_id=p_early.id),
+                    Interest(sender_id=823, post_id=p_late.id),
+                    Interest(sender_id=824, post_id=p_late.id),
+                ]
+            )
+
+        data = json.loads(self.client.get("/api/filter?sort=popular&category=coding").get_data(as_text=True))
+        pop = [p["title"] for p in data["posts"] if p["title"].startswith("POP-")]
+        self.assertGreaterEqual(len(pop), 2)
+        self.assertEqual(pop[0], "POP-LATE", "Higher id wins when Interest counts and timestamps match")
+
     def test_invalid_sort_falls_back_newest(self) -> None:
         with _session(self.app) as s:
             u = User(id=20, email="x@student.uwa.edu.au", username="zzz")
@@ -161,6 +232,30 @@ class TestDiscoverFilterApi(unittest.TestCase):
         data = json.loads(self.client.get("/api/filter?sort=wacky-unknown").get_data(as_text=True))
         titles = [p["title"] for p in data["posts"][:2]]
         self.assertEqual(titles[0], "Brand new post")
+
+    def test_sort_newest_same_timestamp_orders_by_id_desc(self) -> None:
+        with _session(self.app) as s:
+            ux = User(id=800, email="n800@student.uwa.edu.au", username="n800")
+            s.add(ux)
+            cid = s.scalar(select(Category.id).where(Category.slug == "coding"))
+            assert cid is not None
+            ts = datetime(2026, 9, 1, 11, 0, 0)
+            for suf in ("a", "b", "c"):
+                s.add(
+                    Post(
+                        title=f"NEWEST-TIE-{suf}",
+                        description="collision",
+                        category_id=int(cid),
+                        owner_id=800,
+                        timestamp=ts,
+                    )
+                )
+
+        data = json.loads(self.client.get("/api/filter?sort=newest&category=coding").get_data(as_text=True))
+        bloc = [p["title"] for p in data["posts"] if p["title"].startswith("NEWEST-TIE-")]
+        self.assertEqual(len(bloc), 3)
+        ids = [next(int(p["id"]) for p in data["posts"] if p["title"] == t) for t in bloc]
+        self.assertEqual(ids, sorted(ids, reverse=True))
 
     def test_pagination_nine_per_page(self) -> None:
         with _session(self.app) as s:

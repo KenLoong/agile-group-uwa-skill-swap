@@ -113,6 +113,18 @@ class User(UserMixin, db.Model):
         lazy=True,
         back_populates="sender",
     )
+    notifications_inbox = db.relationship(
+        "Notification",
+        foreign_keys="Notification.user_id",
+        back_populates="recipient",
+        lazy="dynamic",
+    )
+    notification_acts = db.relationship(
+        "Notification",
+        foreign_keys="Notification.actor_id",
+        back_populates="actor",
+        lazy="dynamic",
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r}>"
@@ -151,6 +163,12 @@ class Post(db.Model):
         back_populates="post",
         cascade="all, delete-orphan",
     )
+    notifications = db.relationship(
+        "Notification",
+        foreign_keys="Notification.post_id",
+        back_populates="post",
+        lazy=True,
+    )
 
     def __repr__(self) -> str:
         return (
@@ -175,6 +193,33 @@ class Interest(db.Model):
 
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="interests_sent")
     post = db.relationship("Post", foreign_keys=[post_id], back_populates="interests_received")
+
+
+class Notification(db.Model):
+    """In-app inbox row (skill interest ping, future @mentions, …)."""
+
+    __tablename__ = "notification"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False, index=True)
+    comment_id = db.Column(db.Integer, nullable=True)
+    notif_type = db.Column(db.String(20), nullable=False, default="mention")
+    read = db.Column(db.Boolean, nullable=False, default=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    recipient = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="notifications_inbox",
+    )
+    actor = db.relationship(
+        "User",
+        foreign_keys=[actor_id],
+        back_populates="notification_acts",
+    )
+    post = db.relationship("Post", foreign_keys=[post_id], back_populates="notifications")
 
 
 def ensure_default_taxonomy() -> None:

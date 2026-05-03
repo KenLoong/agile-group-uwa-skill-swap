@@ -9,6 +9,7 @@ from api.auth_identity import effective_user_id
 from api.dashboard_interest_received import clamp_interest_received_limit, interest_received_rows
 from api.recommendations import clamp_recommendation_limit, recommended_post_payloads
 from api.tags_models import Category, User, db
+from services.notification_service import count_unread_notifications, mark_all_notifications_read
 
 bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboard")
 
@@ -109,4 +110,33 @@ def get_interest_received():
     items = interest_received_rows(uid, limit=lim)
 
     return jsonify({"items": items, "meta": {"count": len(items), "limit": lim}})
+
+
+@bp.get("/notifications/unread-count")
+def notifications_unread_count():
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    n = count_unread_notifications(uid)
+    return jsonify({"unread_count": n})
+
+
+@bp.post("/notifications/mark-all-read")
+def notifications_mark_all_read():
+    """Mark all inbox notifications read; response includes fresh ``unread_count`` (0)."""
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    marked, unread_after = mark_all_notifications_read(uid)
+    return jsonify({"ok": True, "marked": marked, "unread_count": unread_after})
 

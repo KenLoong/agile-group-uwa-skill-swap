@@ -10,8 +10,21 @@
 </head>
 <body class="bg-light">
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-      <span class="navbar-brand fw-semibold">UWA Skill-Swap</span>
+    <div class="container d-flex flex-wrap align-items-center gap-3">
+      <span class="navbar-brand fw-semibold mb-0">UWA Skill-Swap</span>
+      <div class="ms-lg-auto d-flex flex-wrap align-items-center gap-2 text-white py-2 py-lg-0">
+        <span id="notification-unread-wrap"
+              class="align-items-center gap-2 {% if notification_unread_count %}d-inline-flex{% else %}d-none{% endif %}">
+          <span id="notification-unread-badge"
+                class="badge bg-danger rounded-pill"
+                {% if notification_unread_count %}data-count="{{ notification_unread_count }}"{% endif %}>{{ notification_unread_count or 0 }}</span>
+          <span class="small text-white-50">unread inbox</span>
+        </span>
+        <button type="button"
+                id="dashboard-mark-all-read"
+                class="btn btn-sm btn-light"
+                aria-label="Mark all notifications read">Mark all as read</button>
+      </div>
     </div>
   </nav>
 

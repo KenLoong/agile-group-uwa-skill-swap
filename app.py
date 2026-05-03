@@ -18,7 +18,7 @@ from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
 from api.dashboard_api import bp as dashboard_api_bp
 from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
-from blueprints import auth, dashboard_page, messages, posts
+from blueprints import auth, dashboard_page, interaction, messages, posts
 from security.csrf import init_csrf
 
 
@@ -116,6 +116,7 @@ def create_app(
     posts.register_posts_blueprints(app)
     api_pkg.register_api_blueprints(app)
     app.register_blueprint(messages.bp)
+    app.register_blueprint(interaction.bp)
 
     app.register_blueprint(dashboard_api_bp)
     app.register_blueprint(dashboard_page.bp)
@@ -125,7 +126,7 @@ def create_app(
         return jsonify(
             {
                 "app": "uwa-skill-swap",
-                "blueprints": ["auth", "posts", "api", "messages", "dashboard"],
+                "blueprints": ["auth", "posts", "api", "messages", "interaction", "dashboard"],
             }
         )
 

@@ -7,7 +7,7 @@ Implementation lives in `auth/` and is wired into the Flask auth blueprint throu
 
 - Prove that a registrant controls their `@student.uwa.edu.au` address before we show contact details or “interest” features.
 - Let users **re-send** the email if the link expired (with rate limits).
-- Keep **unverified** accounts from logging in when `REQUIRE_VERIFIED_EMAIL_TO_LOGIN=true` (enforced in the future `login` view).
+- Keep **unverified** accounts from logging in when `REQUIRE_VERIFIED_EMAIL_TO_LOGIN=true`.
 
 ## User journey
 
@@ -19,6 +19,16 @@ Implementation lives in `auth/` and is wired into the Flask auth blueprint throu
 4. The user opens the link: `/auth/verify?token=…`.
 5. `verify_and_consume()` checks signature, hash, single-use, and TTL, then sets the user to verified.  
 6. If they never receive mail: **resend** from the “pending verification” page (throttled).
+
+## Login gate
+
+`POST /auth/login` checks `REQUIRE_VERIFIED_EMAIL_TO_LOGIN`.
+
+When the flag is `false`, users with valid credentials can log in even if `email_confirmed` is still false. This keeps local demos flexible.
+
+When the flag is `true`, valid credentials are not enough. The user must also have `email_confirmed = true`; otherwise the route returns a `403` response with `status: "verification_required"`.
+
+This behaviour keeps verification enforcement explicit and configurable.
 
 ## Browser-facing verification results
 
@@ -60,6 +70,7 @@ API-style clients and unit tests can still receive JSON responses. Browser reque
 
 ```bash
 python -m unittest tests.test_auth_verify_pages -v
+python -m unittest tests.test_auth_login_verification_gate -v
 python -m unittest tests.test_auth_registration -v
 python -m unittest tests.test_email_verification -v
 ```

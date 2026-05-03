@@ -7,12 +7,15 @@
 # =============================================================================
 from __future__ import annotations
 
+import os
+
 from flask import Blueprint, abort, current_app, jsonify, render_template_string, request
 from flask_login import login_user
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from api.tags_models import User, db
 from auth.email_verification import default_service
+from auth.constants import ENV_EMAIL_VERIFY_REQUIRED_FOR_LOGIN
 from auth.exceptions import (
     MailDispatchError,
     TokenExpiredError,
@@ -92,9 +95,105 @@ def login_form():
     )
 
 
+def _truthy_config_value(value: object | None, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return value
+
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _login_requires_verified_email() -> bool:
+    configured = current_app.config.get(ENV_EMAIL_VERIFY_REQUIRED_FOR_LOGIN)
+
+    if configured is not None:
+        return _truthy_config_value(configured)
+
+    return _truthy_config_value(
+        os.environ.get(ENV_EMAIL_VERIFY_REQUIRED_FOR_LOGIN),
+        default=False,
+    )
+
+
+def _validate_login_data(
+    data: dict[str, str],
+) -> tuple[dict[str, str] | None, tuple[dict[str, object], int] | None]:
+    email = (data.get("email") or "").lower().strip()
+    password = data.get("password") or ""
+
+    errors: dict[str, list[str]] = {}
+
+    if not email:
+        errors.setdefault("email", []).append("Email is required.")
+
+    if not password:
+        errors.setdefault("password", []).append("Password is required.")
+
+    if errors:
+        return None, (
+            {
+                "ok": False,
+                "message": "Login validation failed",
+                "errors": errors,
+            },
+            400,
+        )
+
+    return {"email": email, "password": password}, None
+
+
 @bp.post("/login")
 def login_submit():
-    return {"ok": False, "reason": "not_implemented"}, 501
+    data = _request_data()
+    clean, error = _validate_login_data(data)
+
+    if error is not None:
+        body, status = error
+        return jsonify(body), status
+
+    assert clean is not None
+
+    user = db.session.query(User).filter_by(email=clean["email"]).first()
+
+    if (
+        user is None
+        or not user.password_hash
+        or not check_password_hash(user.password_hash, clean["password"])
+    ):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "message": "Invalid email or password.",
+                }
+            ),
+            401,
+        )
+
+    if _login_requires_verified_email() and not bool(user.email_confirmed):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "status": "verification_required",
+                    "message": "Please verify your UWA student email before logging in.",
+                }
+            ),
+            403,
+        )
+
+    login_user(user)
+
+    return jsonify(
+        {
+            "ok": True,
+            "user_id": user.id,
+            "email": user.email,
+            "email_confirmed": bool(user.email_confirmed),
+        }
+    )
 
 
 @bp.get("/register")

@@ -35,9 +35,13 @@ class TestDiscoverFilterApi(unittest.TestCase):
         r = self.client.get("/api/filter")
         self.assertEqual(r.status_code, 200)
         data = json.loads(r.get_data(as_text=True))
-        self.assertEqual(sorted(data.keys()), ["has_next", "has_prev", "page", "pages", "posts"])
+        self.assertEqual(
+            sorted(data.keys()),
+            ["has_next", "has_prev", "page", "pages", "posts", "total"],
+        )
         self.assertEqual(data["posts"], [])
         self.assertEqual(data["pages"], 0)
+        self.assertEqual(data["total"], 0)
 
     def test_category_filter_and_unknown_slug_empty(self) -> None:
         self._seed_two_posts_two_categories()
@@ -53,6 +57,51 @@ class TestDiscoverFilterApi(unittest.TestCase):
         self.assertEqual(bogus["posts"], [])
         self.assertEqual(bogus["pages"], 0)
         self.assertEqual(bogus["page"], 1)
+        self.assertEqual(bogus["total"], 0)
+
+    def test_explicit_empty_query_clears_stale_parallel_q_when_category_active(self) -> None:
+        """?q= alongside blank query must not keep the q filter once query is emptied."""
+        with _session(self.app) as s:
+            ux = User(id=902, email="nine02@student.uwa.edu.au", username="nine02")
+            s.add(ux)
+            cid = s.scalar(select(Category.id).where(Category.slug == "coding"))
+            assert cid is not None
+            ts = datetime(2026, 11, 1, 12, 0, 0)
+            s.add(
+                Post(
+                    title="Broad lesson",
+                    description="no token",
+                    category_id=int(cid),
+                    owner_id=902,
+                    timestamp=ts,
+                )
+            )
+            s.add(
+                Post(
+                    title="Zeta UNIQUEQTOKEN narrow",
+                    description="has token",
+                    category_id=int(cid),
+                    owner_id=902,
+                    timestamp=ts + timedelta(hours=1),
+                )
+            )
+
+        narrow_only = json.loads(
+            self.client.get(
+                "/api/filter?category=coding&q=UNIQUEQTOKEN"
+            ).get_data(as_text=True)
+        )
+        self.assertEqual(narrow_only["total"], 1)
+        titles_narrow = [p["title"] for p in narrow_only["posts"]]
+        self.assertEqual(titles_narrow, ["Zeta UNIQUEQTOKEN narrow"])
+
+        cleared_via_query = json.loads(
+            self.client.get(
+                "/api/filter?category=coding&q=UNIQUEQTOKEN&query="
+            ).get_data(as_text=True)
+        )
+        self.assertEqual(cleared_via_query["total"], 2)
+        self.assertEqual(len(cleared_via_query["posts"]), 2)
 
     def test_tag_filter(self) -> None:
         self._seed_tagged_fixture()
@@ -288,6 +337,14 @@ class TestDiscoverFilterApi(unittest.TestCase):
         self.assertEqual(len(pg2["posts"]), 1)
         self.assertFalse(pg2["has_next"])
         self.assertTrue(pg2["has_prev"])
+        self.assertEqual(pg1["total"], 10)
+        self.assertEqual(pg2["total"], 10)
+
+        far = json.loads(self.client.get("/api/filter?category=languages&page=999").get_data(as_text=True))
+        self.assertEqual(far["pages"], 2)
+        self.assertEqual(far["page"], 2)
+        self.assertEqual(far["total"], 10)
+        self.assertEqual(len(far["posts"]), 1)
 
     def test_card_payload_fields(self) -> None:
         with _session(self.app) as s:

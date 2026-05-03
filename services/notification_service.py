@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from typing import Final
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from api.tags_models import Notification, Post, User, db
 
@@ -74,3 +74,35 @@ def create_mention_notifications_from_text(
         db.session.add(n)
         out.append(n)
     return out
+
+
+def count_unread_notifications(user_id: int) -> int:
+    """Number of inbox rows where ``read`` is false for ``user_id``."""
+    uid = int(user_id)
+    n = db.session.scalar(
+        select(func.count(Notification.id)).where(
+            Notification.user_id == uid,
+            Notification.read.is_(False),
+        )
+    )
+    return int(n or 0)
+
+
+def mark_all_notifications_read(user_id: int) -> tuple[int, int]:
+    """
+    Flip every unread notification for ``user_id`` to read.
+
+    Commits once. Returns ``(marked_before, unread_count_after)`` — after a
+    successful bulk update ``unread_count_after`` should be ``0``.
+    """
+    uid = int(user_id)
+    marked_before = count_unread_notifications(uid)
+    if marked_before:
+        db.session.execute(
+            update(Notification)
+            .where(Notification.user_id == uid, Notification.read.is_(False))
+            .values(read=True)
+        )
+    db.session.commit()
+    after = count_unread_notifications(uid)
+    return (marked_before, after)

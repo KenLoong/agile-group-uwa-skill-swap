@@ -6,7 +6,7 @@
 # factory; merge with the full login stack later without rewriting assertions.
 #
 # Run:
-#   PYTHONPATH=. python -m unittest tests.test_post_set_status -v
+#   python -m unittest tests.test_post_set_status -v
 # =============================================================================
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import json
 import unittest
 from typing import Any
 
-from api.tags_models import Category, Post, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, Post, db
 from sqlalchemy import select
 from tests.helpers import BaseTestCase, create_test_post, create_test_user, get_json, session_scope
 

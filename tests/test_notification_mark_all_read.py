@@ -2,7 +2,7 @@
 # Dashboard notifications — GET unread-count + POST mark-all-read
 # =============================================================================
 # Run:
-#   PYTHONPATH=. python -m unittest tests.test_notification_mark_all_read -v
+#   python -m unittest tests.test_notification_mark_all_read -v
 # =============================================================================
 from __future__ import annotations
 

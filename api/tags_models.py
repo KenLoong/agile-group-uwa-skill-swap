@@ -222,6 +222,49 @@ class Notification(db.Model):
     post = db.relationship("Post", foreign_keys=[post_id], back_populates="notifications")
 
 
+class MessageThread(db.Model):
+    """
+    One-to-one chat between two users. Participants are stored as ordered pair
+    (low_id, high_id) so the same dyad maps to a single row.
+    """
+
+    __tablename__ = "message_thread"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "participant_low_id",
+            "participant_high_id",
+            name="uq_message_thread_pair",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    participant_low_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    participant_high_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+
+    messages = db.relationship(
+        "ThreadMessage",
+        back_populates="thread",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+
+class ThreadMessage(db.Model):
+    """Single line of text in a private thread."""
+
+    __tablename__ = "thread_message"
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.Integer, db.ForeignKey("message_thread.id"), nullable=False, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    body = db.Column(db.Text, nullable=False, default="")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    recipient_read = db.Column(db.Boolean, nullable=False, default=False)
+
+    thread = db.relationship("MessageThread", back_populates="messages")
+    sender = db.relationship("User", foreign_keys=[sender_id])
+
+
 def ensure_default_taxonomy() -> None:
     """
     Insert only ``general`` when the category table is empty (tests / tooling).

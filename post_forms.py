@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField
 from wtforms import SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional
 
@@ -32,5 +33,10 @@ class CreatePostForm(FlaskForm):
         "Tags",
         validators=[Optional(), Length(max=500)],
         description="Comma-separated keywords, e.g. python, beginner, cits5505.",
+    )
+    cover_image = FileField(
+        "Cover image (optional)",
+        validators=[Optional()],
+        description="JPEG, PNG, GIF, or WebP; max 2 MB by default.",
     )
     submit = SubmitField("Publish skill post")

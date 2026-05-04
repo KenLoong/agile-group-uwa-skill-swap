@@ -15,6 +15,7 @@ from flask import Flask, jsonify
 from flask_login import LoginManager
 
 from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
+from api.post_cover_upload import DEFAULT_MAX_BYTES as DEFAULT_MAX_POST_IMAGE_BYTES
 from api.dashboard_api import bp as dashboard_api_bp
 from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
@@ -85,6 +86,8 @@ def create_app(
 
     if test_config:
         app.config.update(test_config)
+
+    app.config.setdefault("MAX_POST_IMAGE_BYTES", DEFAULT_MAX_POST_IMAGE_BYTES)
 
     app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
     init_csrf(app)

@@ -14,7 +14,7 @@ import json
 import unittest
 from typing import Any
 
-from api.tags_models import Category, Post, db
+from api.tags_models import CATEGORY_SLUG_GENERAL, Category, Post, db
 from sqlalchemy import select
 from tests.helpers import BaseTestCase, create_test_post, create_test_user, get_json, session_scope
 

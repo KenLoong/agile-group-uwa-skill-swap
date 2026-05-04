@@ -123,6 +123,7 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
   ],
   "page": 1,
   "pages": 3,
+  "total": 25,
   "has_next": true,
   "has_prev": false
 }
@@ -147,7 +148,8 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
 | `tags` | Array of tag objects with `slug` and `label`. |
 | `image_url` | Image path if a cover image exists; otherwise `null`. |
 | `page` | Current page number. |
-| `pages` | Total number of pages. |
+| `pages` | Total number of pages (derived from ``total`` and server ``per_page``). |
+| `total` | Total posts matching category/tag/search/sort filters before pagination boundaries. Enables UI counts to match cards without multiplying ``pages × per_page``. |
 | `has_next` | Whether another page is available. |
 | `has_prev` | Whether a previous page is available. |
 
@@ -158,10 +160,21 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
   "posts": [],
   "page": 1,
   "pages": 0,
+  "total": 0,
   "has_next": false,
   "has_prev": false
 }
 ```
+
+## Query parameter notes
+
+- **`query` vs `q` / `search`:** clients SHOULD send search text via **`query`**.
+  If **`query`** appears at all — including as an empty string — it **clears**
+  previous text filtering even when **`q`** or **`search`** is still populated
+  alongside it (fixes stale autocomplete parameters when filters change).
+  If **`query`** is omitted, **`q`** and then **`search`** are honoured for backwards compatibility.
+
+- **Pagination:** when **`page`** exceeds the last page but some posts match, implementations SHOULD return the **last valid page** rather than an empty `posts` slice with a non-zero **`total`**.
 
 ## Sort semantics
 
@@ -188,7 +201,7 @@ Implementations MUST keep **`id DESC` as the ultimate tie-break** in all shipped
 
 - Invalid `sort` should fall back to `newest`.
 - Invalid or empty `category` should not crash the endpoint.
-- Invalid `page` should be handled by pagination defaults where possible.
+- Invalid `page` should be handled by pagination defaults where possible — including **clamping** to the last page when the filtered set is smaller than the requested offset (so `total`/`pages`/`posts` stay coherent).
 - Unexpected server errors should return a JSON `message` field.
 
 ## Implementation status

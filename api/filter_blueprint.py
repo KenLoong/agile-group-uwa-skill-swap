@@ -4,9 +4,8 @@
 # Mirrors docs/API_CONTRACTS.md and demo-for-agile-develop behaviour. Owned by
 # Posts & Discovery; registered alongside other /api/* blueprints.
 #
-# Sort branches (deterministic ORDER BY, Member 2 Issue #5 tie-break fixes) live
-# in api.discover_ordering.apply_discover_sort so paging stays stable across DBs
-# and across equal like_count / Interest-count / timestamp collisions.
+# Discover sort ORDER BY tuples live in ``api.discover_ordering``.
+# Search alias precedence + pagination clamping live in ``api.filter_params``.
 # =============================================================================
 from __future__ import annotations
 
@@ -17,6 +16,7 @@ from flask import Blueprint, jsonify, request, url_for
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
+from api.filter_params import normalized_search_expression, paginate_filter_results
 from api.discover_ordering import apply_discover_sort
 from api.tags_models import Category, Post, Tag, db
 
@@ -136,7 +136,7 @@ def filter_posts():
     page = _normalize_page(request.args.get("page"))
     category_slug = request.args.get("category", "all") or "all"
     tag_slug = request.args.get("tag", "") or ""
-    query_txt = request.args.get("query", "") or ""
+    query_txt = normalized_search_expression(request)
 
     base, empty_miss = discover_filter_query(
         category_slug_raw=category_slug,
@@ -148,8 +148,9 @@ def filter_posts():
     if empty_miss:
         payload = {
             "posts": [],
-            "page": page,
+            "page": 1,
             "pages": 0,
+            "total": 0,
             "has_next": False,
             "has_prev": False,
         }
@@ -157,7 +158,7 @@ def filter_posts():
         resp.headers["Cache-Control"] = "public, max-age=15"
         return resp, 200
 
-    pag = base.paginate(page=page, per_page=_PER_PAGE_DEFAULT, error_out=False)
+    pag = paginate_filter_results(base, page=page, per_page=_PER_PAGE_DEFAULT)
     rows = pag.items
 
     out = jsonify(
@@ -165,6 +166,7 @@ def filter_posts():
             "posts": [post_to_discover_card(p) for p in rows],
             "page": pag.page,
             "pages": pag.pages,
+            "total": int(pag.total or 0),
             "has_next": pag.has_next,
             "has_prev": pag.has_prev,
         }

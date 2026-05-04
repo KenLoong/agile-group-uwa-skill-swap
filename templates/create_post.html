@@ -46,7 +46,7 @@
                             — HTML help page arrives in the detail UI issue.
                         </p>
 
-                        <form method="post" action="{{ url_for('posts.create_skill_post') }}" novalidate class="needs-validation">
+                        <form method="post" action="{{ url_for('posts.create_skill_post') }}" novalidate class="needs-validation" enctype="multipart/form-data">
                             {{ form.hidden_tag() }}
 
                             <div class="mb-3">
@@ -71,6 +71,15 @@
                                 {% if form.description.errors %}
                                 <div class="invalid-feedback inline">{{ form.description.errors[0] }}</div>
                                 {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.cover_image.label(class="form-label") }}
+                                {{ form.cover_image(class="form-control" + (" is-invalid" if form.cover_image.errors else "")) }}
+                                {% if form.cover_image.errors %}
+                                <div class="invalid-feedback">{{ form.cover_image.errors[0] }}</div>
+                                {% endif %}
+                                <div class="form-text">{{ form.cover_image.description }}</div>
                             </div>
 
                             <div class="mb-3">

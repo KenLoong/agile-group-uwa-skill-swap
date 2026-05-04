@@ -3,7 +3,9 @@
 # =============================================================================
 from __future__ import annotations
 
+import io
 import json
+import os
 import re
 import unittest
 from html import unescape
@@ -113,6 +115,70 @@ class TestPostCreate(unittest.TestCase):
         rl = self.client.post("/auth/test-login", json={"user_id": uid})
         self.assertTrue(json.loads(rl.get_data(as_text=True)).get("ok"))
         return uid
+
+    def test_create_post_with_optional_cover_stores_safe_filename(self) -> None:
+        import tempfile
+
+        from tests.test_post_cover_upload import _TINY_PNG
+
+        tmp = tempfile.mkdtemp()
+        try:
+            app = create_app(testing=True, test_config={"POST_COVER_UPLOAD_DIR": tmp})
+            client = app.test_client()
+            with app.app_context():
+                u = User(id=43, email="cov@student.uwa.edu.au")
+                db.session.add(u)
+                db.session.commit()
+                uid = int(u.id)
+            rl = client.post("/auth/test-login", json={"user_id": uid})
+            self.assertTrue(json.loads(rl.get_data(as_text=True)).get("ok"))
+
+            csrf = self._csrf_token_for_app(client)
+            with app.app_context():
+                cid = db.session.scalar(select(Category.id).where(Category.slug == "coding"))
+                assert cid is not None
+
+            r_post = client.post(
+                "/posts/create",
+                data={
+                    "csrf_token": csrf,
+                    "title": "Listing with cover",
+                    "category_id": str(int(cid)),
+                    "description": "Has an image.",
+                    "tags": "",
+                    "cover_image": (io.BytesIO(_TINY_PNG), "../../etc/passwd.png"),
+                    "submit": "Publish skill post",
+                },
+            )
+            self.assertEqual(r_post.status_code, 302, msg=r_post.get_data(as_text=True))
+
+            with app.app_context():
+                p = db.session.scalar(select(Post).where(Post.title == "Listing with cover"))
+                self.assertIsNotNone(p)
+                assert p is not None
+                self.assertIsNotNone(p.image_filename)
+                self.assertRegex(str(p.image_filename), r"^[a-f0-9]{32}\.png$")
+                disk = os.path.join(tmp, str(p.image_filename))
+                self.assertTrue(os.path.isfile(disk))
+
+            r_detail = client.get(r_post.headers.get("Location", ""), follow_redirects=True)
+            self.assertEqual(r_detail.status_code, 200)
+            self.assertIn(b"uploads/posts/", r_detail.get_data())
+        finally:
+            import shutil
+
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def _csrf_token_for_app(self, client) -> str:
+        r = client.get("/posts/create")
+        self.assertEqual(r.status_code, 200)
+        txt = r.get_data(as_text=True)
+        m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', txt)
+        if m is None:
+            m = re.search(r'value="([^"]+)"[^>]*name="csrf_token"', txt)
+        self.assertIsNotNone(m)
+        assert m is not None
+        return m.group(1)
 
 
 if __name__ == "__main__":

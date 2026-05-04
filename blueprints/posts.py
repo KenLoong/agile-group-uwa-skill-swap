@@ -3,7 +3,20 @@
 # =============================================================================
 from __future__ import annotations
 
-from flask import Blueprint, Flask, flash, jsonify, redirect, render_template, url_for
+import os
+from flask import (
+    Blueprint,
+    Flask,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    url_for,
+)
+from werkzeug.datastructures import FileStorage
+
+from api.post_cover_upload import DEFAULT_MAX_BYTES, save_post_cover_image
 from flask_login import current_user, login_required
 from sqlalchemy import select
 
@@ -133,7 +146,20 @@ def create_skill_post():
             category_id=int(form.category_id.data),
             owner_id=int(current_user.get_id()),
             status=POST_STATUS_OPEN,
+            image_filename=None,
         )
+        fs = form.cover_image.data
+        if isinstance(fs, FileStorage) and fs.filename:
+            upload_dir = current_app.config.get("POST_COVER_UPLOAD_DIR")
+            if not upload_dir:
+                upload_dir = os.path.join(current_app.static_folder, "uploads", "posts")
+            max_b = int(current_app.config.get("MAX_POST_IMAGE_BYTES", DEFAULT_MAX_BYTES))
+            saved_fn, up_err = save_post_cover_image(fs.stream, upload_dir=upload_dir, max_bytes=max_b)
+            if up_err:
+                flash(up_err, "danger")
+                return render_template("create_post.html", form=form)
+            post_obj.image_filename = saved_fn
+
         db.session.add(post_obj)
         db.session.flush()
         _sync_post_tags(post_obj, form.tags.data)

@@ -73,17 +73,13 @@ git check-ignore static/uploads/posts/.gitkeep
 
 This should produce no output.
 
-## Future implementation notes
+## Application behaviour
 
-When full Flask upload handling is connected, the route should save post images under this directory or under a configured equivalent path.
+The create-post flow accepts an optional **cover image** on `POST /posts/create` using **`multipart/form-data`**. The backend:
 
-Future upload implementation should also include:
+- Validates **content** via **magic bytes** (JPEG, PNG, GIF, WebP).
+- Enforces **`MAX_POST_IMAGE_BYTES`** (default **2 MiB**, set in `app.py`).
+- Writes files under **`static/uploads/posts/`**, or under **`POST_COVER_UPLOAD_DIR`** when set (unit tests point this at a temp directory).
+- Persists only a **basename** on `Post.image_filename`, using a high-entropy hex name and correct extension — client-provided names are not used on disk.
 
-- allowed extension checks;
-- MIME/content validation;
-- file size limits;
-- safe generated filenames;
-- error messages for invalid uploads;
-- tests for accepted and rejected files.
-
-This policy only defines repository tracking rules. It does not implement upload validation or file storage logic.
+Implementation: **`api/post_cover_upload.py`** · form field: **`CreatePostForm.cover_image`**.

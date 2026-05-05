@@ -16,6 +16,7 @@ from services.message_service import (
     other_participant_id,
     thread_for_user,
     thread_messages_for_api,
+    thread_poll_payload,
 )
 
 bp = Blueprint("messages", __name__, url_prefix="/messages")
@@ -68,6 +69,30 @@ def open_thread():
         return jsonify({"message": "Could not open thread"}), 400
 
     return jsonify({"thread_id": thr.id})
+
+
+@bp.get("/thread/<int:thread_id>/poll")
+def thread_poll(thread_id: int):
+    """
+    Incremental fetch for long-polling / periodic refresh.
+
+    Query ``after_id`` (non-negative int, default ``0``): return messages with id &gt; ``after_id``.
+    Response includes ``latest_id`` and thread-wide ``unread_for_me`` for the caller.
+    """
+    maybe = _require_user()
+    if maybe[0] is None:
+        return maybe[1]
+    uid = maybe[0]
+
+    raw = (request.args.get("after_id") or "0").strip()
+    if not raw.isdigit():
+        return jsonify({"message": "after_id must be a non-negative integer"}), 400
+    after_id = int(raw)
+
+    payload, err = thread_poll_payload(thread_id, uid, after_id)
+    if err or payload is None:
+        return jsonify({"message": "Thread not found"}), 404
+    return jsonify(payload)
 
 
 @bp.get("/thread/<int:thread_id>")
@@ -172,6 +197,6 @@ def messages_ping():
 @bp.post("/")
 def post_stub():
     return (
-        jsonify({"ok": False, "detail": "use /messages/thread/open or /messages/thread/<id>/messages"}),
+        jsonify({"ok": False, "detail": "use /messages/thread/open, /poll, or /messages/thread/<id>/messages"}),
         400,
     )

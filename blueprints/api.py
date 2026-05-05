@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from flask import Blueprint, Flask, jsonify
 
+from api.featured_blueprint import bp as featured_posts_bp
 from api.filter_blueprint import bp as discover_filter_bp
 from api.tags_blueprint import bp as tags_json_blueprint
 
@@ -22,13 +23,14 @@ def api_health():
 
 @bp.get("/version")
 def api_version():
-    return jsonify({"name": "skill-swap-api", "slice": "tags+filter+v1"})
+    return jsonify({"name": "skill-swap-api", "slice": "tags+filter+featured+v1"})
 
 
 def register_api_blueprints(app: Flask) -> None:
     """
-    Register tag cloud, discover `/api/filter`, and lightweight `/api/health` URLs.
+    Register tag cloud, discover filter, pinned featured JSON, ``/api/health``.
     """
     app.register_blueprint(tags_json_blueprint)
     app.register_blueprint(discover_filter_bp)
+    app.register_blueprint(featured_posts_bp)
     app.register_blueprint(bp)

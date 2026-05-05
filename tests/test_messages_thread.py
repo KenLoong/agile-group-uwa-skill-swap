@@ -131,6 +131,7 @@ class TestMessagesThreadFlow(unittest.TestCase):
         self.assertEqual(len(body["messages"]), 1)
         self.assertEqual(body["messages"][0]["body"], "Hello")
         self.assertFalse(body["messages"][0]["read"])
+        self.assertFalse(body["messages"][0].get("sender_deleted", False))
 
     def test_inbox_unread_and_mark_read(self) -> None:
         tid = json.loads(

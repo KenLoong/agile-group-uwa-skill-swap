@@ -14,9 +14,11 @@ from services.message_service import (
     inbox_for_user,
     mark_thread_read,
     other_participant_id,
+    participant_public_card,
     thread_for_user,
     thread_messages_for_api,
     thread_poll_payload,
+    user_id_from_username_ci,
 )
 
 bp = Blueprint("messages", __name__, url_prefix="/messages")
@@ -55,10 +57,21 @@ def open_thread():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({"message": "JSON object expected"}), 400
-    oid = payload.get("other_user_id")
-    if not isinstance(oid, int) and not (isinstance(oid, str) and oid.strip().isdigit()):
-        return jsonify({"message": "other_user_id must be an integer"}), 400
-    other = int(oid)
+    oid_raw = payload.get("other_user_id")
+    oname = payload.get("other_username")
+
+    other: int | None = None
+    if oid_raw is not None and (
+        isinstance(oid_raw, int) or (isinstance(oid_raw, str) and str(oid_raw).strip().isdigit())
+    ):
+        other = int(str(oid_raw).strip())
+    elif isinstance(oname, str) and oname.strip():
+        found = user_id_from_username_ci(oname.strip())
+        if found is None:
+            return jsonify({"message": "Other user not found"}), 404
+        other = found
+    else:
+        return jsonify({"message": "Provide other_user_id (integer) or other_username (string)"}), 400
 
     thr, err = get_or_create_thread(uid, other)
     if thr is None:
@@ -77,7 +90,8 @@ def thread_poll(thread_id: int):
     Incremental fetch for long-polling / periodic refresh.
 
     Query ``after_id`` (non-negative int, default ``0``): return messages with id &gt; ``after_id``.
-    Response includes ``latest_id`` and thread-wide ``unread_for_me`` for the caller.
+    Response includes ``latest_id``, thread-wide ``unread_for_me``, ``peer`` (with ``deleted``
+    when the other participant row is missing), and per-row ``sender_deleted``.
     """
     maybe = _require_user()
     if maybe[0] is None:
@@ -111,21 +125,11 @@ def thread_detail(thread_id: int):
         return jsonify({"message": "Thread not found"}), 404
 
     other_id = other_participant_id(t, uid)
-    other = db.session.get(User, other_id)
-    me = db.session.get(User, uid)
     return jsonify(
         {
             "thread_id": t.id,
-            "you": {
-                "id": uid,
-                "username": me.username if me else None,
-                "email": me.email if me else None,
-            },
-            "other": (
-                {"id": other.id, "username": other.username, "email": other.email}
-                if other
-                else {"id": other_id, "username": None, "email": None}
-            ),
+            "you": participant_public_card(uid),
+            "other": participant_public_card(other_id),
             "messages": messages,
         }
     )
@@ -168,6 +172,7 @@ def post_message(thread_id: int):
             "message": {
                 "id": msg.id,
                 "sender_id": msg.sender_id,
+                "sender_deleted": db.session.get(User, int(msg.sender_id)) is None,
                 "body": msg.body,
                 "created_at": msg.created_at.isoformat(timespec="seconds") if msg.created_at else None,
                 "read": True,

@@ -36,6 +36,51 @@ SECRET_KEY=<generated-value>
 
 Do not commit `.env`.
 
+## Browser security headers
+
+The Flask app applies standard browser security headers through `security/headers.py`.
+
+Current response headers include:
+
+| Header | Purpose |
+| --- | --- |
+| `Content-Security-Policy` | Restricts where scripts, styles, images, frames, and forms can load or submit. |
+| `X-Content-Type-Options` | Uses `nosniff` to prevent MIME-type sniffing. |
+| `X-Frame-Options` | Uses `DENY` to prevent clickjacking through frame embedding. |
+| `Referrer-Policy` | Uses `strict-origin-when-cross-origin` to limit referrer leakage. |
+| `Permissions-Policy` | Disables browser features the project does not need, such as camera, microphone, and geolocation. |
+
+The current Content-Security-Policy is intentionally compatible with the repository's existing templates, which load Bootstrap from `cdn.jsdelivr.net` and jQuery from `code.jquery.com`.
+
+The current CSP includes:
+
+```text
+default-src 'self'
+base-uri 'self'
+object-src 'none'
+frame-ancestors 'none'
+form-action 'self'
+img-src 'self' data:
+connect-src 'self'
+font-src 'self' https://cdn.jsdelivr.net data:
+style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'
+script-src 'self' https://cdn.jsdelivr.net https://code.jquery.com
+```
+
+`style-src` currently includes `'unsafe-inline'` because several templates still use small inline style blocks. A future hardening PR can remove inline styles or move them into static CSS files.
+
+## HSTS policy
+
+`Strict-Transport-Security` is disabled by default for local development because the app is normally run over plain HTTP at `127.0.0.1`.
+
+To enable HSTS behind HTTPS, set:
+
+```text
+SECURITY_HSTS_ENABLED=true
+```
+
+Only enable this when the app is served over HTTPS. Do not enable HSTS for local HTTP-only demos.
+
 ## CSRF policy
 
 Flask-WTF CSRF support is initialised through `security/csrf.py`.

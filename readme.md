@@ -198,22 +198,19 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup
-Initialize the SQLite database:
+### 3. Database Setup & Seeding
+Initialize the SQLite database and populate it with demo data:
 ```bash
-python manage.py shell
->>> from app import db
->>> db.create_all()
->>> exit()
+make seed
 ```
+*(Alternatively, you can run `python seed.py` manually).*
 
 ### 4. Launching the Application
-Run the Flask development server:
+Run the Flask development server using the application factory:
 ```bash
-export FLASK_APP=app.py
-export FLASK_ENV=development
-flask run
+flask --app "app:create_app" run
 ```
+*(Alternatively, you can use `make run`).*
 The application will be available at: `http://127.0.0.1:5000/`
 
 ---

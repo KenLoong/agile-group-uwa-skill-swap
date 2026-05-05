@@ -16,6 +16,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from api.tags_models import User, db
 from auth.email_verification import default_service
 from auth.constants import ENV_EMAIL_VERIFY_REQUIRED_FOR_LOGIN
+from security.rate_limit import (
+    default_login_rate_limiter,
+    login_rate_limit_enabled,
+    login_rate_limit_key,
+    login_rate_limit_max_attempts,
+    login_rate_limit_window_seconds,
+)
 from auth.exceptions import (
     MailDispatchError,
     TokenExpiredError,
@@ -144,6 +151,60 @@ def _validate_login_data(
     return {"email": email, "password": password}, None
 
 
+def _login_rate_config() -> tuple[int, int]:
+    return (
+        login_rate_limit_max_attempts(current_app),
+        login_rate_limit_window_seconds(current_app),
+    )
+
+
+def _login_rate_key(email: str) -> str:
+    return login_rate_limit_key(email, request.remote_addr)
+
+
+def _check_login_rate_limit(email: str):
+    if not login_rate_limit_enabled(current_app):
+        return None
+
+    max_attempts, window_seconds = _login_rate_config()
+    result = default_login_rate_limiter.check(
+        _login_rate_key(email),
+        max_attempts=max_attempts,
+        window_seconds=window_seconds,
+    )
+
+    if result.allowed:
+        return None
+
+    return (
+        jsonify(
+            {
+                "ok": False,
+                "status": "rate_limited",
+                "message": "Too many failed login attempts. Please try again later.",
+                "retry_after_seconds": result.retry_after_seconds,
+            }
+        ),
+        429,
+    )
+
+
+def _record_failed_login_attempt(email: str) -> None:
+    if not login_rate_limit_enabled(current_app):
+        return
+
+    max_attempts, window_seconds = _login_rate_config()
+    default_login_rate_limiter.record_failure(
+        _login_rate_key(email),
+        max_attempts=max_attempts,
+        window_seconds=window_seconds,
+    )
+
+
+def _reset_failed_login_attempts(email: str) -> None:
+    default_login_rate_limiter.reset(_login_rate_key(email))
+
+
 @bp.post("/login")
 def login_submit():
     data = _request_data()
@@ -155,6 +216,10 @@ def login_submit():
 
     assert clean is not None
 
+    rate_limit_response = _check_login_rate_limit(clean["email"])
+    if rate_limit_response is not None:
+        return rate_limit_response
+
     user = db.session.query(User).filter_by(email=clean["email"]).first()
 
     if (
@@ -162,6 +227,7 @@ def login_submit():
         or not user.password_hash
         or not check_password_hash(user.password_hash, clean["password"])
     ):
+        _record_failed_login_attempt(clean["email"])
         return (
             jsonify(
                 {
@@ -173,6 +239,7 @@ def login_submit():
         )
 
     if _login_requires_verified_email() and not bool(user.email_confirmed):
+        _reset_failed_login_attempts(clean["email"])
         return (
             jsonify(
                 {
@@ -184,6 +251,7 @@ def login_submit():
             403,
         )
 
+    _reset_failed_login_attempts(clean["email"])
     login_user(user)
 
     return jsonify(

@@ -6,7 +6,7 @@
 # ids stripped, and isolation between users.
 #
 # Run:
-#   PYTHONPATH=. python -m unittest tests.test_dashboard_wanted -v
+#   python -m unittest tests.test_dashboard_wanted -v
 # =============================================================================
 from __future__ import annotations
 

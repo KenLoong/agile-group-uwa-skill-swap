@@ -8,7 +8,7 @@
 #   * Multi-tag — several tags and multi-tag posts; dedup behaviour
 #
 # Run:
-#   PYTHONPATH=. python -m unittest tests.test_api_tags -v
+#   python -m unittest tests.test_api_tags -v
 # =============================================================================
 from __future__ import annotations
 

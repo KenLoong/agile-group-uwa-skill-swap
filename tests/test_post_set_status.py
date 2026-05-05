@@ -6,7 +6,7 @@
 # factory; merge with the full login stack later without rewriting assertions.
 #
 # Run:
-#   PYTHONPATH=. python -m unittest tests.test_post_set_status -v
+#   python -m unittest tests.test_post_set_status -v
 # =============================================================================
 from __future__ import annotations
 

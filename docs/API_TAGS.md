@@ -66,7 +66,7 @@ Aggregate helpers (`api/post_aggregates.py`) return per-post payloads for list/d
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-PYTHONPATH=. python -m unittest tests.test_api_tags -v
+python -m unittest tests.test_api_tags -v
 ```
 
 ## Future work (not in this issue)

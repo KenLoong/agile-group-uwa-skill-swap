@@ -30,6 +30,7 @@ def _post_base_select():
             Post.description.label("description"),
             Post.timestamp.label("timestamp"),
             Post.image_filename.label("image_filename"),
+            Post.image_alt.label("image_alt"),
             Post.comment_count.label("comment_count"),
             Post.like_count.label("like_count"),
             Category.slug.label("category_slug"),
@@ -48,6 +49,7 @@ def _post_base_select():
             Post.description,
             Post.timestamp,
             Post.image_filename,
+            Post.image_alt,
             Post.comment_count,
             Post.like_count,
             Category.id,
@@ -98,6 +100,9 @@ def _shape_post(
     post_id = int(row["id"])
     slug = row.get("category_slug")
     cat_label = row.get("category_label")
+    img_fn = row.get("image_filename")
+    raw_alt = (row.get("image_alt") or "").strip() or None
+    image_alt = raw_alt if img_fn else None
     return {
         "id": post_id,
         "title": row["title"],
@@ -105,7 +110,8 @@ def _shape_post(
         "status": row["status"],
         "owner_id": row["owner_id"],
         "timestamp_iso": _timestamp_safe_iso(row.get("timestamp")),
-        "image_filename": row.get("image_filename"),
+        "image_filename": img_fn,
+        "image_alt": image_alt,
         "comment_count": int(row["comment_count"] or 0),
         "like_count": int(row["like_count"] or 0),
         "category": {

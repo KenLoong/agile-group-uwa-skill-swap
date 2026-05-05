@@ -9,7 +9,17 @@ from __future__ import annotations
 
 import os
 
-from flask import Blueprint, abort, current_app, jsonify, render_template_string, request
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    render_template_string,
+    request,
+    url_for,
+)
 from flask_login import login_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -26,6 +36,30 @@ from auth.exceptions import (
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 UWA_STUDENT_EMAIL_SUFFIX = "@student.uwa.edu.au"
+
+def _wants_browser_html_response() -> bool:
+    """Return True when the request is a browser-style HTML form request."""
+    if request.is_json:
+        return False
+
+    best = request.accept_mimetypes.best_match(["text/html", "application/json"])
+    return best == "text/html"
+
+
+def _safe_next_url(value: str | None) -> str:
+    """Allow only local redirect targets."""
+    target = (value or "").strip()
+
+    if not target:
+        return "/"
+
+    if not target.startswith("/") or target.startswith("//"):
+        return "/"
+
+    return target
+
+def _auth_next_value() -> str:
+    return _safe_next_url(request.values.get("next"))
 
 def _request_data() -> dict[str, str]:
     if request.is_json:
@@ -87,11 +121,12 @@ def _validate_registration(
 
 @bp.get("/login")
 def login_form():
-    """Placeholder until templates ship from the pages/ directory."""
-    return (
-        render_template_string("<!doctype html><title>login</title><p>auth/login stub</p>"),
-        200,
-        {"Content-Type": "text/html; charset=utf-8"},
+    return render_template(
+        "login.html",
+        next_url=_auth_next_value(),
+        email="",
+        error=None,
+        errors={},
     )
 
 
@@ -151,6 +186,19 @@ def login_submit():
 
     if error is not None:
         body, status = error
+
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "login.html",
+                    next_url=_auth_next_value(),
+                    email=data.get("email", ""),
+                    error=body["message"],
+                    errors=body.get("errors", {}),
+                ),
+                status,
+            )
+    
         return jsonify(body), status
 
     assert clean is not None
@@ -162,6 +210,18 @@ def login_submit():
         or not user.password_hash
         or not check_password_hash(user.password_hash, clean["password"])
     ):
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "login.html",
+                    next_url=_auth_next_value(),
+                    email=clean["email"],
+                    error="Invalid email or password.",
+                    errors={},
+                ),
+                401,
+            )
+
         return (
             jsonify(
                 {
@@ -173,6 +233,18 @@ def login_submit():
         )
 
     if _login_requires_verified_email() and not bool(user.email_confirmed):
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "login.html",
+                    next_url=_auth_next_value(),
+                    email=clean["email"],
+                    error="Please verify your UWA student email before logging in.",
+                    errors={},
+                ),
+                403,
+            )
+
         return (
             jsonify(
                 {
@@ -186,6 +258,9 @@ def login_submit():
 
     login_user(user)
 
+    if _wants_browser_html_response():
+        return redirect(_safe_next_url(data.get("next")))
+
     return jsonify(
         {
             "ok": True,
@@ -198,9 +273,13 @@ def login_submit():
 
 @bp.get("/register")
 def register_form():
-    return (
-        render_template_string("<!doctype html><title>register</title><p>auth/register stub</p>"),
-        200,
+    return render_template(
+        "register.html",
+        values={},
+        error=None,
+        errors={},
+        success_message=None,
+        registered_email=None,
     )
 
 
@@ -211,19 +290,61 @@ def register_submit():
 
     if error is not None:
         body, status = error
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "register.html",
+                    values=data,
+                    error=body["message"],
+                    errors=body.get("errors", {}),
+                    success_message=None,
+                    registered_email=None,
+                ),
+                status,
+            )
         return jsonify(body), status
 
     assert clean is not None
 
     if db.session.query(User.id).filter_by(email=clean["email"]).first() is not None:
-        return jsonify({"ok": False, "message": "Email is already registered."}), 409
+        message = "Email is already registered."
+
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "register.html",
+                    values=data,
+                    error=message,
+                    errors={},
+                    success_message=None,
+                    registered_email=None,
+                ),
+                409,
+            )
+
+        return jsonify({"ok": False, "message": message}), 409
 
     if (
         clean["username"]
         and db.session.query(User.id).filter_by(username=clean["username"]).first()
         is not None
     ):
-        return jsonify({"ok": False, "message": "Display name is already taken."}), 409
+        message = "Display name is already taken."
+
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "register.html",
+                    values=data,
+                    error=message,
+                    errors={},
+                    success_message=None,
+                    registered_email=None,
+                ),
+                409,
+            )
+
+        return jsonify({"ok": False, "message": message}), 409
 
     user = User(
         email=clean["email"],
@@ -237,12 +358,60 @@ def register_submit():
         db.session.flush()
         default_service.issue_for_new_user(user)
         db.session.commit()
+
     except MailDispatchError:
         db.session.rollback()
-        return jsonify({"ok": False, "message": "Could not send verification email."}), 502
+        message = "Could not send verification email."
+
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "register.html",
+                    values=data,
+                    error=message,
+                    errors={},
+                    success_message=None,
+                    registered_email=None,
+                ),
+                502,
+            )
+        return jsonify({"ok": False, "message": message}), 502
+    
     except VerificationError as exc:
         db.session.rollback()
-        return jsonify({"ok": False, "message": str(exc)}), 400
+        message = str(exc)
+
+        if _wants_browser_html_response():
+            return (
+                render_template(
+                    "register.html",
+                    values=data,
+                    error=message,
+                    errors={},
+                    success_message=None,
+                    registered_email=None,
+                ),
+                400,
+            )
+        return jsonify({"ok": False, "message": message}), 400
+
+    success_message = (
+        "Registration created. Check your UWA inbox for a verification link. "
+        "In local development, the dev console mailer prints the link in the terminal."
+    )
+
+    if _wants_browser_html_response():
+        return (
+            render_template(
+                "register.html",
+                values={},
+                error=None,
+                errors={},
+                success_message=success_message,
+                registered_email=user.email,
+            ),
+            201,
+        )
 
     return (
         jsonify(
@@ -251,10 +420,7 @@ def register_submit():
                 "status": "verification_pending",
                 "user_id": user.id,
                 "email": user.email,
-                "message": (
-                    "Registration created. Check your UWA inbox for a "
-                    "verification link."
-                ),
+                "message": success_message,
             }
         ),
         201,

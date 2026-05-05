@@ -203,3 +203,73 @@ def inbox_for_user(user_id: int) -> list[dict[str, Any]]:
 
     items.sort(key=lambda x: (x["last_message_at"] or "", x["thread_id"]), reverse=True)
     return items
+
+
+def unread_in_thread_for_user(thread_id: int, viewer_id: int) -> int | None:
+    """Count messages in ``thread_id`` addressed to ``viewer_id`` that are unread. ``None`` if not a member."""
+    t = thread_for_user(thread_id, viewer_id)
+    if t is None:
+        return None
+    uid = int(viewer_id)
+    n = db.session.scalar(
+        select(func.count(ThreadMessage.id)).where(
+            ThreadMessage.thread_id == t.id,
+            ThreadMessage.sender_id != uid,
+            ThreadMessage.recipient_read.is_(False),
+        )
+    )
+    return int(n or 0)
+
+
+def thread_poll_payload(thread_id: int, viewer_id: int, after_id: int) -> tuple[dict[str, Any] | None, str | None]:
+    """
+    Incremental poll: messages with primary key strictly greater than ``after_id``.
+
+    Returns a JSON-serialisable dict with ``messages``, ``latest_id``, and
+    ``unread_for_me`` (thread-wide unread count for the viewer).
+    """
+    t = thread_for_user(thread_id, viewer_id)
+    if t is None:
+        return None, "not_found"
+
+    rows = (
+        db.session.scalars(
+            select(ThreadMessage)
+            .where(ThreadMessage.thread_id == t.id, ThreadMessage.id > int(after_id))
+            .order_by(ThreadMessage.created_at.asc(), ThreadMessage.id.asc())
+        )
+        .all()
+    )
+    msg_out: list[dict[str, Any]] = []
+    for m in rows:
+        msg_out.append(
+            {
+                "id": m.id,
+                "sender_id": m.sender_id,
+                "body": m.body,
+                "created_at": m.created_at.isoformat(timespec="seconds") if m.created_at else None,
+                "read": message_read_for_viewer(m, viewer_id),
+            }
+        )
+
+    latest = db.session.scalar(
+        select(ThreadMessage.id)
+        .where(ThreadMessage.thread_id == t.id)
+        .order_by(ThreadMessage.id.desc())
+        .limit(1)
+    )
+
+    unread = unread_in_thread_for_user(int(t.id), int(viewer_id))
+    if unread is None:
+        return None, "not_found"
+
+    return (
+        {
+            "thread_id": t.id,
+            "after_id": int(after_id),
+            "messages": msg_out,
+            "latest_id": int(latest) if latest is not None else None,
+            "unread_for_me": unread,
+        },
+        None,
+    )

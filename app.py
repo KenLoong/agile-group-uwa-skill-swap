@@ -11,12 +11,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from flask import Flask, jsonify
+from flask import Flask, render_template
 from flask_login import LoginManager
 
 from auth.constants import ENV_SECRET_KEY, TEST_SECRET_KEY
 from api.post_cover_upload import DEFAULT_MAX_BYTES as DEFAULT_MAX_POST_IMAGE_BYTES
 from api.dashboard_api import bp as dashboard_api_bp
+from api.featured_posts import featured_post_cards
 from api.tags_models import CATEGORY_SLUG_GENERAL, Category, User, db
 from blueprints import api as api_pkg
 from blueprints import auth, dashboard_page, interaction, messages, posts
@@ -88,6 +89,7 @@ def create_app(
         app.config.update(test_config)
 
     app.config.setdefault("MAX_POST_IMAGE_BYTES", DEFAULT_MAX_POST_IMAGE_BYTES)
+    app.config.setdefault("FEATURED_POSTS_HOME_LIMIT", 8)
 
     app.config["SECRET_KEY"] = _resolve_secret_key(app, testing=testing)
     init_csrf(app)
@@ -126,12 +128,9 @@ def create_app(
 
     @app.get("/")
     def root_index():
-        return jsonify(
-            {
-                "app": "uwa-skill-swap",
-                "blueprints": ["auth", "posts", "api", "messages", "interaction", "dashboard"],
-            }
-        )
+        lim = int(app.config.get("FEATURED_POSTS_HOME_LIMIT", 8))
+        cards = featured_post_cards(lim)
+        return render_template("home.html", featured_cards=cards)
 
     with app.app_context():
         db.create_all()

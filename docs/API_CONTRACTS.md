@@ -11,11 +11,12 @@ The goal is to keep frontend behaviour, Flask route implementation, and future t
 | Endpoint | Method | Auth required | Main consumer | Purpose |
 | --- | --- | --- | --- | --- |
 | `/api/filter` | `GET` | No | Discover page JavaScript | Filter and paginate visible skill posts |
+| `/api/featured-posts` | `GET` | No | Homepage / demo widgets | Curated open listings pinned for display |
 | `/api/tags` | `GET` | No | Discover page / tag UI | Return tag metadata and post counts |
 | `/api/stats` | `GET` | No | Public stats page | Return platform-wide chart data |
 | `/api/dashboard/charts` | `GET` | Yes | Dashboard chart tab | Return current user's personal chart data |
 
-All endpoints return JSON. Error responses should also use JSON where the request was made as an API/AJAX request.
+JSON API endpoints return JSON; the browsable **`GET /`** homepage returns HTML featuring the same pinned data as **`GET /api/featured-posts`**. Error responses should also use JSON where the request was made as an API/AJAX request.
 
 ---
 
@@ -209,6 +210,40 @@ Implementations MUST keep **`id DESC` as the ultimate tie-break** in all shipped
 ## Implementation status
 
 This endpoint belongs to the JSON API layer described by the repository's blueprint structure. It should be implemented under the API blueprint so that the discover page can request filtered post data without reloading the full page.
+
+---
+
+# `GET /api/featured-posts`
+
+## Purpose
+
+Returns **open** posts that have **`featured_pin_order`** set (non-null integer). Lower **`featured_pin_order`** values appear earlier. Intended for homepage highlights and orientation demos alongside the HTML `/` view.
+
+Closed or matched listings are omitted even if a pin rank exists.
+
+## Authentication
+
+No login required.
+
+## Query parameters
+
+None in v1. Result count is capped by server config **`FEATURED_POSTS_HOME_LIMIT`** (default **8**, max **50** enforced inside the helper).
+
+## Success response shape
+
+Top-level **`posts`**: array of objects matching **`GET /api/filter`** post cards **plus**:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `featured_pin_order` | integer | Sort key used by the homepage (duplicate of stored column). |
+
+## Caching
+
+`Cache-Control: public, max-age=30` suggested for successful responses.
+
+## Curating pins
+
+Assign **`Post.featured_pin_order`** via admin SQL, Flask shell, or future staff UI. Set to **`NULL`** to remove from featured.
 
 ---
 
@@ -500,6 +535,7 @@ This endpoint is part of the authenticated dashboard API contract. It should ret
 | Endpoint | Frontend consumer |
 | --- | --- |
 | `/api/filter` | `static/js/discover.js` |
+| `/api/featured-posts` | Homepage (`/`) and future widgets |
 | `/api/tags` | Discover/tag UI and `docs/API_TAGS.md` scaffold |
 | `/api/stats` | `static/js/stats.js` |
 | `/api/dashboard/charts` | `static/js/dashboard_charts.js` |

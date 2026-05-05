@@ -153,6 +153,8 @@ class Post(db.Model):
     comment_count = db.Column(db.Integer, nullable=False, default=0)
     like_count = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.String(20), default=POST_STATUS_OPEN, nullable=False)
+    # Lower numbers list first on the homepage; NULL = not featured (normal discover only).
+    featured_pin_order = db.Column(db.Integer, nullable=True, index=True)
 
     category = db.relationship("Category", back_populates="posts")
     tags = db.relationship("Tag", secondary=post_tags, back_populates="posts", lazy=True)

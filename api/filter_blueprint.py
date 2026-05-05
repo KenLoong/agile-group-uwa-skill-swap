@@ -77,6 +77,10 @@ def post_to_discover_card(post: Post) -> dict[str, Any]:
         if post.image_filename
         else None
     )
+    alt = None
+    if post.image_filename:
+        raw = (getattr(post, "image_alt", None) or "").strip()
+        alt = raw or None
 
     return {
         "id": int(post.id),
@@ -92,6 +96,7 @@ def post_to_discover_card(post: Post) -> dict[str, Any]:
         "status": str(post.status or "open"),
         "tags": [{"slug": str(t.slug), "label": str(t.label)} for t in tags],
         "image_url": img,
+        "image_alt": alt,
     }
 
 

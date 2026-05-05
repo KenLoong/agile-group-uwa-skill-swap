@@ -370,6 +370,7 @@ class TestDiscoverFilterApi(unittest.TestCase):
                     category_id=int(cid),
                     owner_id=40,
                     image_filename="demo.jpg",
+                    image_alt="Cover of practice session",
                     timestamp=_TS0 + timedelta(days=1),
                 )
             )
@@ -381,9 +382,11 @@ class TestDiscoverFilterApi(unittest.TestCase):
         self.assertEqual(plain["author"], "carl")
         self.assertEqual(plain["author_profile"], "/user/carl")
         self.assertIsNone(plain["image_url"])
+        self.assertIsNone(plain["image_alt"])
         im = by_title["With jpeg"]
         self.assertIsNotNone(im["image_url"])
         self.assertIn("/static/uploads/posts/demo.jpg", im["image_url"])
+        self.assertEqual(im["image_alt"], "Cover of practice session")
         keys = sorted(plain.keys())
         expected = sorted(
             [
@@ -393,6 +396,7 @@ class TestDiscoverFilterApi(unittest.TestCase):
                 "category_slug",
                 "comment_count",
                 "id",
+                "image_alt",
                 "image_url",
                 "like_count",
                 "snippet",

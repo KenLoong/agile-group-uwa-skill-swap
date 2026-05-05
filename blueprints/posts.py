@@ -147,9 +147,16 @@ def create_skill_post():
             owner_id=int(current_user.get_id()),
             status=POST_STATUS_OPEN,
             image_filename=None,
+            image_alt=None,
         )
         fs = form.cover_image.data
-        if isinstance(fs, FileStorage) and fs.filename:
+        has_cover = isinstance(fs, FileStorage) and bool(fs.filename)
+        alt_stripped = (form.image_alt.data or "").strip()
+        if alt_stripped and not has_cover:
+            flash("Add a cover image before entering image description text.", "warning")
+            return render_template("create_post.html", form=form)
+
+        if has_cover:
             upload_dir = current_app.config.get("POST_COVER_UPLOAD_DIR")
             if not upload_dir:
                 upload_dir = os.path.join(current_app.static_folder, "uploads", "posts")
@@ -159,6 +166,7 @@ def create_skill_post():
                 flash(up_err, "danger")
                 return render_template("create_post.html", form=form)
             post_obj.image_filename = saved_fn
+            post_obj.image_alt = alt_stripped[:200] if alt_stripped else None
 
         db.session.add(post_obj)
         db.session.flush()

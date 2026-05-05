@@ -39,4 +39,9 @@ class CreatePostForm(FlaskForm):
         validators=[Optional()],
         description="JPEG, PNG, GIF, or WebP; max 2 MB by default.",
     )
+    image_alt = StringField(
+        "Cover image description (optional)",
+        validators=[Optional(), Length(max=200)],
+        description='Short accessibility text shown when the cover image loads. Only used if you attach an image.',
+    )
     submit = SubmitField("Publish skill post")

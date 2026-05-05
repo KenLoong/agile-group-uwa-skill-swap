@@ -77,7 +77,7 @@
                 <div class="mb-4 text-center px-1">
                     <img
                         src="{{ url_for('static', filename='uploads/posts/' ~ post.image_filename) }}"
-                        alt=""
+                        alt="{{ post.image_alt or post.title }}"
                         class="img-fluid rounded border shadow-sm"
                         style="max-height: 420px; object-fit: contain;"
                     >

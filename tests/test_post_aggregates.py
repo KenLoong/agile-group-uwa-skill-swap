@@ -93,6 +93,20 @@ class TestPostAggregateHelpers(BaseTestCase):
         self.assertIn("description", data)
         self.assertIn("comment_count", data)
         self.assertIn("like_count", data)
+        self.assertIsNone(data.get("image_alt"))
+
+    def test_post_detail_includes_image_alt_when_cover_present(self) -> None:
+        with session_scope(self.app) as s:
+            owner = create_test_user(s, 5)
+            p = create_test_post(s, owner, "Visual listing")
+            p.image_filename = "pic.png"
+            p.image_alt = "Photo of soldering station"
+            post_id = p.id
+
+        r = self.client.get(f"/posts/{post_id}/json")
+        data = get_json(r)
+        self.assertEqual(data["image_alt"], "Photo of soldering station")
+        self.assertEqual(data["image_filename"], "pic.png")
 
     def test_post_payload_includes_engagement_fields_and_category(self) -> None:
         with session_scope(self.app) as s:

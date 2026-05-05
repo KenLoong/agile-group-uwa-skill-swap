@@ -81,5 +81,6 @@ The create-post flow accepts an optional **cover image** on `POST /posts/create`
 - Enforces **`MAX_POST_IMAGE_BYTES`** (default **2 MiB**, set in `app.py`).
 - Writes files under **`static/uploads/posts/`**, or under **`POST_COVER_UPLOAD_DIR`** when set (unit tests point this at a temp directory).
 - Persists only a **basename** on `Post.image_filename`, using a high-entropy hex name and correct extension — client-provided names are not used on disk.
+- Authors may supply optional **`Post.image_alt`** (max 200 characters) when uploading a cover; it is surfaced in HTML `alt`, `GET /posts/<id>/json`, and discover `GET /api/filter` cards as **`image_alt`**.
 
-Implementation: **`api/post_cover_upload.py`** · form field: **`CreatePostForm.cover_image`**.
+Implementation: **`api/post_cover_upload.py`** · form fields: **`CreatePostForm.cover_image`**, **`CreatePostForm.image_alt`**.

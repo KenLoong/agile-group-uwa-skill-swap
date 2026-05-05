@@ -73,6 +73,30 @@ class TestPostDetailHtml(unittest.TestCase):
         self.assertIn(">2</strong> likes", html)
         self.assertIn(f"/posts/{pid}/json", html)
 
+    def test_html_cover_prefers_custom_alt_over_title(self) -> None:
+        with _sess(self.app) as s:
+            u = User(id=17, email="pic@student.uwa.edu.au", username="pics")
+            s.add(u)
+            cid = s.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
+            assert cid is not None
+            post = Post(
+                title="Workshop teaser",
+                description="Join us.",
+                category_id=int(cid),
+                owner_id=17,
+                image_filename="board.png",
+                image_alt="Whiteboard explaining recursion",
+                status="open",
+            )
+            s.add(post)
+            s.flush()
+            pid = post.id
+
+        rv = self.client.get(f"/posts/{pid}")
+        self.assertEqual(rv.status_code, 200)
+        html = rv.get_data(as_text=True)
+        self.assertIn('alt="Whiteboard explaining recursion"', html)
+        self.assertIn("uploads/posts/board.png", html)
     def test_json_detail_route_unchanged_shape(self) -> None:
         with _sess(self.app) as s:
             u = User(id=8, email="x@student.uwa.edu.au")
@@ -96,6 +120,7 @@ class TestPostDetailHtml(unittest.TestCase):
         self.assertEqual(data["title"], "Guitar")
         self.assertEqual(data["status"], "closed")
         self.assertEqual(data["category"]["slug"], "music")
+        self.assertIsNone(data.get("image_alt"))
 
 
 if __name__ == "__main__":

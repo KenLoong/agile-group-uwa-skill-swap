@@ -118,7 +118,8 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
           "label": "Flask"
         }
       ],
-      "image_url": "/static/uploads/posts/example.jpg"
+      "image_url": "/static/uploads/posts/example.jpg",
+      "image_alt": "Desk with laptop and coffee"
     }
   ],
   "page": 1,
@@ -147,6 +148,7 @@ GET /api/filter?category=coding&tag=python&query=flask&sort=newest&page=1
 | `status` | Post lifecycle state, normally `open`, `matched`, or `closed`. |
 | `tags` | Array of tag objects with `slug` and `label`. |
 | `image_url` | Image path if a cover image exists; otherwise `null`. |
+| `image_alt` | Optional short description for the cover image (`null` when absent or when there is no cover). |
 | `page` | Current page number. |
 | `pages` | Total number of pages (derived from ``total`` and server ``per_page``). |
 | `total` | Total posts matching category/tag/search/sort filters before pagination boundaries. Enables UI counts to match cards without multiplying ``pages × per_page``. |

@@ -95,6 +95,34 @@ class TestPostCreate(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn(b"Give your post a short title", r.get_data())
 
+    def test_image_alt_without_cover_shows_warning_and_no_post(self) -> None:
+        self._seed_user_login()
+        with self.app.app_context():
+            cid = db.session.scalar(select(Category.id).where(Category.slug == CATEGORY_SLUG_GENERAL))
+            assert cid is not None
+
+        csrf = self._csrf_token()
+        r = self.client.post(
+            "/posts/create",
+            data={
+                "csrf_token": csrf,
+                "title": "Lonely alt only",
+                "category_id": str(int(cid)),
+                "description": "Body text present.",
+                "tags": "",
+                "image_alt": "This alt has no matching file",
+                "submit": "Publish skill post",
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b"Add a cover image before entering image description", r.get_data())
+
+        with self.app.app_context():
+            self.assertIsNone(
+                db.session.scalar(select(Post.id).where(Post.title == "Lonely alt only"))
+            )
+
+
     def _csrf_token(self) -> str:
         r = self.client.get("/posts/create")
         self.assertEqual(r.status_code, 200)
@@ -146,6 +174,7 @@ class TestPostCreate(unittest.TestCase):
                     "category_id": str(int(cid)),
                     "description": "Has an image.",
                     "tags": "",
+                    "image_alt": "Hands typing on a laptop",
                     "cover_image": (io.BytesIO(_TINY_PNG), "../../etc/passwd.png"),
                     "submit": "Publish skill post",
                 },
@@ -157,6 +186,7 @@ class TestPostCreate(unittest.TestCase):
                 self.assertIsNotNone(p)
                 assert p is not None
                 self.assertIsNotNone(p.image_filename)
+                self.assertEqual(p.image_alt, "Hands typing on a laptop")
                 self.assertRegex(str(p.image_filename), r"^[a-f0-9]{32}\.png$")
                 disk = os.path.join(tmp, str(p.image_filename))
                 self.assertTrue(os.path.isfile(disk))
@@ -164,6 +194,7 @@ class TestPostCreate(unittest.TestCase):
             r_detail = client.get(r_post.headers.get("Location", ""), follow_redirects=True)
             self.assertEqual(r_detail.status_code, 200)
             self.assertIn(b"uploads/posts/", r_detail.get_data())
+            self.assertIn(b"Hands typing on a laptop", r_detail.get_data())
         finally:
             import shutil
 

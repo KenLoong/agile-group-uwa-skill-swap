@@ -149,6 +149,7 @@ class Post(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=False)
 
     image_filename = db.Column(db.String(120), nullable=True)
+    image_alt = db.Column(db.String(200), nullable=True)
     comment_count = db.Column(db.Integer, nullable=False, default=0)
     like_count = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.String(20), default=POST_STATUS_OPEN, nullable=False)

@@ -83,6 +83,15 @@
                             </div>
 
                             <div class="mb-3">
+                                {{ form.image_alt.label(class="form-label") }}
+                                {{ form.image_alt(class="form-control" + (" is-invalid" if form.image_alt.errors else "")) }}
+                                {% if form.image_alt.errors %}
+                                <div class="invalid-feedback">{{ form.image_alt.errors[0] }}</div>
+                                {% endif %}
+                                <div class="form-text">{{ form.image_alt.description }}</div>
+                            </div>
+
+                            <div class="mb-3">
                                 {{ form.tags.label(class="form-label") }}
                                 {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else "")) }}
                                 {% if form.tags.errors %}

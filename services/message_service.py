@@ -12,6 +12,37 @@ from api.tags_models import MessageThread, ThreadMessage, User, db
 MAX_MESSAGE_BODY_LEN: Final[int] = 4000
 
 
+def user_id_from_username_ci(handle: str) -> int | None:
+    """
+    Resolve a user id by username; comparison is ASCII case-fold style via ``LOWER``
+
+    Matches ``SQLite`` semantics used in classroom demos. Unknown or blank → ``None``.
+    """
+    norm = (handle or "").strip()
+    if not norm:
+        return None
+    lc = norm.lower()
+    uid = db.session.scalar(select(User.id).where(func.lower(User.username) == lc))
+    return int(uid) if uid is not None else None
+
+
+def participant_public_card(user_id: int) -> dict[str, Any]:
+    """Minimal profile card for inbox / thread headers; survives missing ``User`` rows."""
+    uid = int(user_id)
+    u = db.session.get(User, uid)
+    if u is None:
+        return {"id": uid, "username": None, "email": None, "deleted": True}
+    return {"id": u.id, "username": u.username, "email": u.email, "deleted": False}
+
+
+def alive_sender_ids(sender_ids: set[int]) -> set[int]:
+    """Which of ``sender_ids`` still exist as ``User.id``."""
+    if not sender_ids:
+        return set()
+    rows = db.session.scalars(select(User.id).where(User.id.in_(tuple(sender_ids))))
+    return {int(x) for x in rows.all()}
+
+
 def ordered_participant_pair(a: int, b: int) -> tuple[int, int] | None:
     """Return (low, high) user ids, or ``None`` when both ids are the same."""
     x, y = int(a), int(b)
@@ -129,28 +160,21 @@ def thread_messages_for_api(thread_id: int, viewer_id: int) -> tuple[list[dict[s
         )
         .all()
     )
+    alive_ids = alive_sender_ids({int(m.sender_id) for m in rows})
     out: list[dict[str, Any]] = []
     for m in rows:
+        sid = int(m.sender_id)
         out.append(
             {
                 "id": m.id,
-                "sender_id": m.sender_id,
+                "sender_id": sid,
+                "sender_deleted": sid not in alive_ids,
                 "body": m.body,
                 "created_at": m.created_at.isoformat(timespec="seconds") if m.created_at else None,
                 "read": message_read_for_viewer(m, viewer_id),
             }
         )
     return out, None
-
-
-def _user_brief(u: User | None) -> dict[str, Any] | None:
-    if u is None:
-        return None
-    return {
-        "id": u.id,
-        "username": u.username,
-        "email": u.email,
-    }
 
 
 def inbox_for_user(user_id: int) -> list[dict[str, Any]]:
@@ -168,7 +192,6 @@ def inbox_for_user(user_id: int) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for th in threads:
         other_id = other_participant_id(th, uid)
-        other = db.session.get(User, other_id)
         last = db.session.scalar(
             select(ThreadMessage)
             .where(ThreadMessage.thread_id == th.id)
@@ -194,7 +217,7 @@ def inbox_for_user(user_id: int) -> list[dict[str, Any]]:
         items.append(
             {
                 "thread_id": th.id,
-                "other": _user_brief(other),
+                "other": participant_public_card(other_id),
                 "last_message_at": last_at,
                 "preview": preview,
                 "unread_for_me": unread,
@@ -225,8 +248,8 @@ def thread_poll_payload(thread_id: int, viewer_id: int, after_id: int) -> tuple[
     """
     Incremental poll: messages with primary key strictly greater than ``after_id``.
 
-    Returns a JSON-serialisable dict with ``messages``, ``latest_id``, and
-    ``unread_for_me`` (thread-wide unread count for the viewer).
+    Returns a JSON-serialisable dict with ``messages`` (each with ``sender_deleted``),
+    ``latest_id``, ``unread_for_me``, and ``peer`` (``participant_public_card`` for the other user).
     """
     t = thread_for_user(thread_id, viewer_id)
     if t is None:
@@ -241,11 +264,15 @@ def thread_poll_payload(thread_id: int, viewer_id: int, after_id: int) -> tuple[
         .all()
     )
     msg_out: list[dict[str, Any]] = []
+    sender_ids_list = list({int(m.sender_id) for m in rows})
+    alive_ids = alive_sender_ids(set(sender_ids_list))
     for m in rows:
+        sid = int(m.sender_id)
         msg_out.append(
             {
                 "id": m.id,
-                "sender_id": m.sender_id,
+                "sender_id": sid,
+                "sender_deleted": sid not in alive_ids,
                 "body": m.body,
                 "created_at": m.created_at.isoformat(timespec="seconds") if m.created_at else None,
                 "read": message_read_for_viewer(m, viewer_id),
@@ -263,6 +290,9 @@ def thread_poll_payload(thread_id: int, viewer_id: int, after_id: int) -> tuple[
     if unread is None:
         return None, "not_found"
 
+    other_id = other_participant_id(t, viewer_id)
+    peer = participant_public_card(other_id)
+
     return (
         {
             "thread_id": t.id,
@@ -270,6 +300,7 @@ def thread_poll_payload(thread_id: int, viewer_id: int, after_id: int) -> tuple[
             "messages": msg_out,
             "latest_id": int(latest) if latest is not None else None,
             "unread_for_me": unread,
+            "peer": peer,
         },
         None,
     )

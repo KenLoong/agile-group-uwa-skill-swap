@@ -36,6 +36,41 @@ SECRET_KEY=<generated-value>
 
 Do not commit `.env`.
 
+## Login rate limiting
+
+`POST /auth/login` uses a small process-local rate limiter for failed login attempts.
+
+The limiter tracks failed attempts by:
+
+```text
+client IP address + submitted email address
+```
+
+Only credential failures count as failed attempts. Missing form fields do not count, and a correct password that is blocked only because email verification is required does not count as a password failure.
+
+The default configuration is:
+
+```text
+LOGIN_RATE_LIMIT_ENABLED=true
+LOGIN_RATE_LIMIT_MAX_ATTEMPTS=5
+LOGIN_RATE_LIMIT_WINDOW_SECONDS=600
+```
+
+When the limit is reached, the login route returns:
+
+```json
+{
+  "ok": false,
+  "status": "rate_limited",
+  "message": "Too many failed login attempts. Please try again later.",
+  "retry_after_seconds": 600
+}
+```
+
+The current limiter is in-memory and process-local. This is appropriate for local coursework development and unit tests. A production multi-worker deployment should replace it with a shared store such as Redis or a database-backed counter.
+
+Successful login clears the failed-attempt bucket for the same IP/email pair.
+
 ## Browser security headers
 
 The Flask app applies standard browser security headers through `security/headers.py`.

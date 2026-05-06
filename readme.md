@@ -198,22 +198,23 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup
-Initialize the SQLite database:
+### 3. Database Setup & Seeding
+Initialize the SQLite database and populate it with demo data:
 ```bash
-python manage.py shell
->>> from app import db
->>> db.create_all()
->>> exit()
+export SECRET_KEY="dev-local-secret-for-checkpoint"
+make seed
 ```
+*(Alternatively, you can run `python seed.py` manually).*
+
+**Demo Accounts:** After seeding, you can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au`. The password for all demo accounts is `demo12345`.
 
 ### 4. Launching the Application
-Run the Flask development server:
+Run the Flask development server using the production application factory (to use the real database, not the in-memory test DB):
 ```bash
-export FLASK_APP=app.py
-export FLASK_ENV=development
-flask run
+export SECRET_KEY="dev-local-secret-for-checkpoint"
+flask --app "app:create_production_app" run --debug
 ```
+*(Alternatively, you can use `make run` after exporting the secret key).*
 The application will be available at: `http://127.0.0.1:5000/`
 
 ---

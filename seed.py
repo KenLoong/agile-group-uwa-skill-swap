@@ -15,10 +15,13 @@ def seed_database():
             print("Database is already seeded with demo users. Skipping.")
             return
 
-        # Create demo users
-        alice = User(username="alice", email="alice@student.uwa.edu.au", password_hash="test_password", email_confirmed=True)
-        bob = User(username="bob", email="bob@student.uwa.edu.au", password_hash="test_password", email_confirmed=True)
-        carol = User(username="carol", email="carol@student.uwa.edu.au", password_hash="test_password", email_confirmed=True)
+        from werkzeug.security import generate_password_hash
+        
+        # Create demo users with hashed passwords
+        hashed_pwd = generate_password_hash("demo12345", method="pbkdf2:sha256")
+        alice = User(username="alice", email="alice@student.uwa.edu.au", password_hash=hashed_pwd, email_confirmed=True)
+        bob = User(username="bob", email="bob@student.uwa.edu.au", password_hash=hashed_pwd, email_confirmed=True)
+        carol = User(username="carol", email="carol@student.uwa.edu.au", password_hash=hashed_pwd, email_confirmed=True)
         
         db.session.add_all([alice, bob, carol])
         db.session.commit()
@@ -48,7 +51,8 @@ def seed_database():
             description="I am looking for someone to teach me acoustic guitar in exchange for advanced Python lessons.",
             category_id=coding_cat.id,
             owner_id=alice.id,
-            status="open"
+            status="open",
+            featured_pin_order=1
         )
         post1.tags.append(python_tag)
         
@@ -57,7 +61,8 @@ def seed_database():
             description="I have been playing guitar for 5 years. I need help with my Java assignments, but happy to help anyone else learn.",
             category_id=music_cat.id,
             owner_id=bob.id,
-            status="open"
+            status="open",
+            featured_pin_order=2
         )
         post2.tags.append(guitar_tag)
         
@@ -66,7 +71,8 @@ def seed_database():
             description="Happy to chat in Spanish for 1 hour a week. I'd love to learn some Python basics if possible!",
             category_id=languages_cat.id,
             owner_id=carol.id,
-            status="open"
+            status="open",
+            featured_pin_order=3
         )
         post3.tags.append(spanish_tag)
         post3.tags.append(python_tag)
@@ -80,7 +86,7 @@ def seed_database():
         print("- alice@student.uwa.edu.au")
         print("- bob@student.uwa.edu.au")
         print("- carol@student.uwa.edu.au")
-        print("(Use any password, authentication is loosely enforced in demo)")
+        print("Password for all demo accounts: demo12345")
         print("==================================================")
 
 if __name__ == "__main__":

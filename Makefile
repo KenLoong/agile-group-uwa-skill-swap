@@ -13,7 +13,7 @@ help:
 
 run:
 	@echo "Starting Flask development server..."
-	flask --app "app:create_app" run --debug
+	flask --app "app:create_production_app" run --debug
 
 test:
 	@echo "Running tests..."

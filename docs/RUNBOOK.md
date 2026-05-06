@@ -35,15 +35,19 @@ make migrate
 To populate the application with reliable test data (e.g., test users, sample posts, tags, and categories) for manual UI testing:
 
 ```bash
+export SECRET_KEY="dev-local-secret-for-checkpoint"
 make seed
 ```
 *(Under the hood, `make seed` runs `python seed.py`)*
 
+**Demo Accounts:** You can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au` (Password: `demo12345`).
+
 ## 4. Running the Application
 
-Once the database is migrated and seeded, you can start the local development server:
+Once the database is migrated and seeded, you can start the local development server using the production factory:
 
 ```bash
+export SECRET_KEY="dev-local-secret-for-checkpoint"
 make run
 ```
 The app will be available at `http://127.0.0.1:5000`.

@@ -13,7 +13,7 @@ help:
 
 run:
 	@echo "Starting Flask development server..."
-	FLASK_APP=app.py FLASK_ENV=development flask run
+	flask --app "app:create_production_app" run --debug
 
 test:
 	@echo "Running tests..."

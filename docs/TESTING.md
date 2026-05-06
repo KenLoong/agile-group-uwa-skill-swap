@@ -76,6 +76,8 @@ However, if you want to run *only* the Selenium tests to save time or to debug U
 python -m unittest tests.test_selenium
 ```
 
+Discover flows run against **`GET /discover`** (filter UI + `#post-grid` backed by `GET /api/filter`), not **`GET /`**, which renders featured homepage cards instead. Unless you set **`TEST_BASE_URL`** to drive an already-running Flask process, each Selenium session starts its own werkzeug listener on localhost with a seeded tempfile SQLite DB (see **`tests.selenium_support`**).
+
 ### Headless vs Headful Mode
 
 By default, the UI tests will likely run in headless mode (no browser window appears). If you need to visually watch what the test is clicking, you can force the browser to appear by overriding the headless environment variable (if your local test configuration supports it):

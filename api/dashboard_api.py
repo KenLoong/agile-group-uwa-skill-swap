@@ -10,6 +10,7 @@ from api.dashboard_interest_received import clamp_interest_received_limit, inter
 from api.recommendations import clamp_recommendation_limit, recommended_post_payloads
 from api.tags_models import Category, User, db
 from services.notification_service import count_unread_notifications, mark_all_notifications_read
+from services.stats_service import dashboard_charts_payload
 
 bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboard")
 
@@ -139,4 +140,18 @@ def notifications_mark_all_read():
 
     marked, unread_after = mark_all_notifications_read(uid)
     return jsonify({"ok": True, "marked": marked, "unread_count": unread_after})
+
+
+@bp.get("/charts")
+def dashboard_charts():
+    """Personal chart JSON for dashboard JS (logged-in user's posts)."""
+    uid = effective_user_id()
+    if uid is None:
+        return jsonify({"message": "Authentication required"}), 401
+
+    user = db.session.get(User, uid)
+    if user is None:
+        return jsonify({"message": "User not found"}), 404
+
+    return jsonify(dashboard_charts_payload(uid))
 

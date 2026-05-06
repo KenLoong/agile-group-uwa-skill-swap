@@ -79,6 +79,30 @@ class TestAuthVerifyResultPages(unittest.TestCase):
         self.assertEqual(r.content_type, "application/json")
         self.assertEqual(r.get_json()["status"], "missing")
 
+    def test_malformed_token_with_non_numeric_user_id_returns_json_invalid(self) -> None:
+        r = self.client.get(
+            "/auth/verify?token=raw-token|not-a-number|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
+
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.content_type, "application/json")
+
+        body = r.get_json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["status"], "invalid")
+        self.assertIn("invalid", body["message"])
+
+    def test_malformed_token_with_non_numeric_user_id_renders_html_invalid(self) -> None:
+        r = self._html_get(
+            "/auth/verify?token=raw-token|not-a-number|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
+
+        self.assertEqual(r.status_code, 400)
+
+        text = r.get_data(as_text=True)
+        self.assertIn("Verification link invalid", text)
+        self.assertIn("invalid or has already been used", text)
+
 
 if __name__ == "__main__":
     unittest.main()

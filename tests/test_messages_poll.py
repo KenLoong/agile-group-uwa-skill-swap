@@ -101,6 +101,8 @@ class TestMessagePollEmptyThread(unittest.TestCase):
         self.assertEqual(data["messages"], [])
         self.assertIsNone(data["latest_id"])
         self.assertEqual(data["unread_for_me"], 0)
+        self.assertFalse(data["peer"]["deleted"])
+        self.assertEqual(data["peer"]["id"], 2)
 
     def test_poll_empty_thread_explicit_after_zero(self) -> None:
         tid = json.loads(

@@ -134,6 +134,14 @@ def create_app(
         cards = featured_post_cards(lim)
         return render_template("home.html", featured_cards=cards)
 
+    @app.get("/discover")
+    def discover_preview():
+        """
+        Lightweight discover shell for demos and Selenium (`#post-grid` + `/api/filter`).
+        Homepage ``/`` remains featured-only (see ``home.html``).
+        """
+        return render_template("discover_preview.html")
+
     with app.app_context():
         db.create_all()
         _seed_categories_if_empty()

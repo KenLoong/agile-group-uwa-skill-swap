@@ -8,10 +8,16 @@
         {# ── Chat header ─────────────────────────────────────────────── #}
         <div class="d-flex align-items-center gap-3 mb-3">
             <a href="{{ url_for('messages_inbox') }}" class="btn btn-sm btn-outline-secondary px-2" aria-label="Back to inbox">←</a>
-            <span class="avatar-circle"
-                  style="background: hsl({{ (partner.username|length * 47) % 360 }}, 55%, 42%)">
-                {{ partner.username[0]|upper }}
-            </span>
+            {% if partner.avatar_filename %}
+                <img src="{{ url_for('static', filename='uploads/avatars/' + partner.avatar_filename) }}"
+                     alt="{{ partner.username }}"
+                     class="avatar-circle" />
+            {% else %}
+                <span class="avatar-circle"
+                      style="background: hsl({{ (partner.username|length * 47) % 360 }}, 55%, 42%)">
+                    {{ partner.username[0]|upper }}
+                </span>
+            {% endif %}
             <div>
                 <a href="{{ url_for('user_profile', username=partner.username) }}" class="fw-semibold text-reset text-decoration-none">
                     {{ partner.username }}

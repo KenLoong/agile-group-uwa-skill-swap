@@ -241,6 +241,25 @@
         if (commentInput) { commentInput.classList.toggle('is-invalid', !!msg); }
     }
 
+    /* Read current-user avatar metadata embedded by the template */
+    var formMeta       = document.getElementById('comment-form-meta');
+    var metaUsername   = formMeta ? formMeta.getAttribute('data-username')   : '';
+    var metaProfileUrl = formMeta ? formMeta.getAttribute('data-profile-url'): '#';
+    var metaAvatarUrl  = formMeta ? formMeta.getAttribute('data-avatar-url') : '';
+    var metaHue        = formMeta ? parseInt(formMeta.getAttribute('data-hue'), 10) : 0;
+
+    function buildAvatarHTML(username, profileUrl, avatarUrl, hue) {
+        if (avatarUrl) {
+            return '<a href="' + profileUrl + '">' +
+                       '<img src="' + avatarUrl + '" alt="' + username +
+                       '" class="avatar-circle comment-avatar" />' +
+                   '</a>';
+        }
+        var init = username.charAt(0).toUpperCase();
+        return '<a href="' + profileUrl + '" class="avatar-circle comment-avatar text-decoration-none"' +
+               ' style="background:hsl(' + hue + ',55%,42%)">' + init + '</a>';
+    }
+
     commentForm.addEventListener('submit', function (e) {
         e.preventDefault();
         removeDrop();
@@ -263,20 +282,35 @@
 
                 if (commentList) {
                     commentList.classList.remove('d-none');
-                    var li = document.createElement('li');
-                    li.className = 'list-group-item py-3';
+
+                    var avatarUrl = data.avatar_filename
+                        ? '/static/uploads/avatars/' + data.avatar_filename
+                        : metaAvatarUrl;
+                    var username = data.username || metaUsername;
+                    var hue      = avatarHue(username);
+
                     /* Render @mentions in the newly posted comment */
                     var safeContent = data.content
                         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                         .replace(/@(\w+)/g, '<a href="/user/$1" class="mention-link">@$1</a>');
+
+                    var li = document.createElement('li');
+                    li.className = 'comment-item d-flex gap-3 mb-3';
                     li.innerHTML =
-                        '<div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">' +
-                            '<strong class="small"></strong>' +
-                            '<span class="small text-muted"></span>' +
+                        '<div class="comment-avatar-col flex-shrink-0">' +
+                            buildAvatarHTML(username, metaProfileUrl, avatarUrl, hue) +
                         '</div>' +
-                        '<p class="mb-0 small comment-text" style="white-space:pre-wrap;">' + safeContent + '</p>';
-                    li.querySelector('strong').textContent      = data.username;
-                    li.querySelector('.text-muted').textContent = data.timestamp;
+                        '<div class="comment-card flex-grow-1">' +
+                            '<div class="comment-card-header d-flex align-items-center gap-2">' +
+                                '<a href="' + metaProfileUrl + '" class="comment-username">' + username + '</a>' +
+                                '<span class="comment-dot">·</span>' +
+                                '<time class="comment-time">' + (data.timestamp || '') + '</time>' +
+                            '</div>' +
+                            '<div class="comment-card-body">' +
+                                '<p class="mb-0 comment-text">' + safeContent + '</p>' +
+                            '</div>' +
+                        '</div>';
+
                     commentList.appendChild(li);
                 }
 

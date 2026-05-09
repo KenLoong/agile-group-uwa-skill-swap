@@ -301,25 +301,105 @@ code {
 }
 
 /* ------------------------------------------------------------------
-   11. Comment list
+   11. Comment thread (GitHub / Discourse-inspired)
    ------------------------------------------------------------------ */
+
+/* Vertical connector line between avatar and the next comment */
+.comment-thread {
+    position: relative;
+}
+
+.comment-avatar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.comment-avatar {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    font-size: 1rem;
+    border: 2px solid #e6eaf0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: box-shadow var(--transition-fast);
+}
+
+.comment-avatar:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* The card itself */
+.comment-card {
+    border: 1px solid #d0d7de;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #ffffff;
+    transition: box-shadow var(--transition-fast);
+}
+
+.comment-card:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
+}
+
+/* Grey header bar – username + timestamp */
+.comment-card-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    flex-wrap: wrap;
+}
+
+.comment-username {
+    font-weight: 600;
+    color: #1a1f36;
+    text-decoration: none;
+}
+
+.comment-username:hover {
+    color: var(--uwa-navy);
+    text-decoration: underline;
+}
+
+.comment-dot {
+    color: #9aa5b4;
+    font-size: 0.7rem;
+}
+
+.comment-time {
+    color: #6e7781;
+    font-size: 0.8rem;
+}
+
+/* Comment body */
+.comment-card-body {
+    padding: 0.75rem 0.9rem;
+}
+
+/* Footer (used in compose form) */
+.comment-card-footer {
+    padding: 0.5rem 0.9rem;
+    background: #f6f8fa;
+    border-top: 1px solid #d0d7de;
+}
+
+/* Content text */
 .comment-text {
     white-space: pre-wrap;
     word-break: break-word;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #24292f;
 }
 
-#comment-list .list-group-item {
-    border-left: none;
-    border-right: none;
-    transition: background-color var(--transition-fast);
+/* Compose form – textarea blends into card body */
+.comment-compose .form-control::placeholder {
+    color: #9aa5b4;
 }
 
-#comment-list .list-group-item:first-child {
-    border-top: none;
-}
-
-#comment-list .list-group-item:hover {
-    background-color: #f8f9ff;
+.comment-compose .form-control:focus {
+    outline: none;
+    box-shadow: none;
 }
 
 /* ------------------------------------------------------------------

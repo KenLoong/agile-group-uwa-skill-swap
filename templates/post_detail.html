@@ -91,52 +91,98 @@
     </div>
 </article>
 
-<section class="mb-4">
-    <h2 class="h5 mb-3">Comments <span class="badge bg-secondary fw-normal" id="comments-section-count">{{ post.comment_count }}</span></h2>
+<section class="mb-5">
+    <h2 class="h5 mb-4 d-flex align-items-center gap-2">
+        Comments
+        <span class="badge bg-secondary fw-normal" id="comments-section-count">{{ post.comment_count }}</span>
+    </h2>
+
     {% set sorted_comments = post.comments|sort(attribute='timestamp') %}
-    <ul id="comment-list" class="list-unstyled space-y-2 mb-3{% if not sorted_comments %} d-none{% endif %}">
+    <ul id="comment-list" class="list-unstyled comment-thread mb-4{% if not sorted_comments %} d-none{% endif %}">
         {% for c in sorted_comments %}
-            <li class="d-flex gap-3 p-3 bg-light rounded">
-                <div class="flex-shrink-0">
+            <li class="comment-item d-flex gap-3 mb-3">
+                {# ── Avatar column ── #}
+                <div class="comment-avatar-col flex-shrink-0">
                     {% if c.user.avatar_filename %}
-                        <img src="{{ url_for('static', filename='uploads/avatars/' + c.user.avatar_filename) }}"
-                             alt="{{ c.user.username }} avatar"
-                             class="avatar-circle" />
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}">
+                            <img src="{{ url_for('static', filename='uploads/avatars/' + c.user.avatar_filename) }}"
+                                 alt="{{ c.user.username }}"
+                                 class="avatar-circle comment-avatar" />
+                        </a>
                     {% else %}
-                        <span class="avatar-circle" style="background:hsl({{ (c.user.username|length * 47) % 360 }}, 55%, 42%)">{{ (c.user.username[0] if c.user.username else '?')|upper }}</span>
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}"
+                           class="avatar-circle comment-avatar text-decoration-none"
+                           style="background:hsl({{ (c.user.username|length * 47) % 360 }}, 55%, 42%)">
+                            {{ (c.user.username[0] if c.user.username else '?')|upper }}
+                        </a>
                     {% endif %}
                 </div>
-                <div class="flex-grow-1 min-width-0">
-                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
-                        <strong class="small"><a href="{{ url_for('user_profile', username=c.user.username) }}" class="text-reset text-decoration-none">{{ c.user.username }}</a></strong>
-                        <span class="small text-muted text-nowrap">{{ c.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                {# ── Comment card ── #}
+                <div class="comment-card flex-grow-1">
+                    <div class="comment-card-header d-flex align-items-center gap-2">
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}"
+                           class="comment-username">{{ c.user.username }}</a>
+                        <span class="comment-dot">·</span>
+                        <time class="comment-time" datetime="{{ c.timestamp.isoformat() }}">
+                            {{ c.timestamp.strftime('%b %-d, %Y') }}
+                            <span class="d-none d-sm-inline">at {{ c.timestamp.strftime('%H:%M') }}</span>
+                        </time>
                     </div>
-                    <p class="mb-0 small comment-text" style="white-space: pre-wrap; word-break: break-word;">{{ c.content | render_mentions | safe }}</p>
+                    <div class="comment-card-body">
+                        <p class="mb-0 comment-text">{{ c.content | render_mentions | safe }}</p>
+                    </div>
                 </div>
             </li>
         {% endfor %}
     </ul>
-    <p id="comment-empty-hint" class="text-muted small {% if sorted_comments %}d-none{% endif %}">No comments yet. Start the conversation below.</p>
+    <p id="comment-empty-hint" class="text-muted small {% if sorted_comments %}d-none{% endif %}">
+        No comments yet — be the first to reply below.
+    </p>
 
+    {# ── Write a comment ── #}
     {% if current_user.is_authenticated %}
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <form id="comment-form" method="post" action="{{ url_for('post_comment', post_id=post.id) }}" novalidate>
+        <div class="comment-compose d-flex gap-3 align-items-start mt-2"
+             id="comment-form-meta"
+             data-username="{{ current_user.username }}"
+             data-profile-url="{{ url_for('user_profile', username=current_user.username) }}"
+             data-avatar-filename="{{ current_user.avatar_filename or '' }}"
+             data-avatar-url="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_filename) if current_user.avatar_filename else '' }}"
+             data-hue="{{ (current_user.username|length * 47) % 360 }}">
+            <div class="comment-avatar-col flex-shrink-0">
+                {% if current_user.avatar_filename %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_filename) }}"
+                         alt="You"
+                         class="avatar-circle comment-avatar" />
+                {% else %}
+                    <span class="avatar-circle comment-avatar"
+                          style="background:hsl({{ (current_user.username|length * 47) % 360 }}, 55%, 42%)">
+                        {{ (current_user.username[0] if current_user.username else '?')|upper }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="comment-card flex-grow-1">
+                <form id="comment-form" method="post"
+                      action="{{ url_for('post_comment', post_id=post.id) }}" novalidate>
                     {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        {{ form.content.label(class="form-label") }}
-                        {{ form.content(class="form-control" + (" is-invalid" if form.content.errors else ""), rows=3, id="comment-content", placeholder="Write a comment… type @ to mention someone") }}
+                    <div class="comment-card-body pb-2">
+                        {{ form.content(class="form-control border-0 shadow-none px-0" + (" is-invalid" if form.content.errors else ""),
+                                        rows=3, id="comment-content",
+                                        placeholder="Leave a comment… type @ to mention someone") }}
                         <div id="comment-client-error" class="invalid-feedback d-none"></div>
                         {% if form.content.errors %}
                             <div class="invalid-feedback d-block">{{ form.content.errors[0] }}</div>
                         {% endif %}
                     </div>
-                    {{ form.submit(class="btn btn-primary btn-sm", id="comment-submit") }}
+                    <div class="comment-card-footer d-flex justify-content-end">
+                        {{ form.submit(class="btn btn-primary btn-sm px-4", id="comment-submit") }}
+                    </div>
                 </form>
             </div>
         </div>
     {% else %}
-        <p class="small text-muted mb-0"><a href="{{ url_for('login', next=request.path) }}">Log in</a> to leave a comment.</p>
+        <p class="small text-muted mt-3 mb-0">
+            <a href="{{ url_for('login', next=request.path) }}">Log in</a> to leave a comment.
+        </p>
     {% endif %}
 </section>
 {% endblock %}

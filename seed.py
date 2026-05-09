@@ -13,6 +13,8 @@ Covers:
 from datetime import datetime, timedelta
 import random
 import os
+import shutil
+import uuid
 
 from app import app, db
 from models import (
@@ -124,9 +126,41 @@ def seed_data():
             ('grace',   'grace@student.uwa.edu.au'),
             ('henry',   'henry@student.uwa.edu.au'),
         ]
+
+        # Source avatar files placed in static/uploads/avatars/ by hand.
+        # Each user gets their own COPY so that one user's avatar change
+        # never deletes a file that another user's record still points to.
+        # Detect available seed files dynamically (h*.jpeg) to survive
+        # partial deletions caused by previous runs.
+        avatar_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'static', 'uploads', 'avatars',
+        )
+        avatar_src_files = sorted(
+            f for f in os.listdir(avatar_dir)
+            if f.startswith('h') and f.endswith('.jpeg')
+        )
+        if not avatar_src_files:
+            raise RuntimeError(
+                'No seed avatar files (h*.jpeg) found in '
+                + avatar_dir + '. Please restore them before running seed.py.'
+            )
+
+        def copy_avatar(src_name):
+            """Copy a seed avatar to a unique filename; return the new name."""
+            ext = os.path.splitext(src_name)[1]
+            dest_name = uuid.uuid4().hex + ext
+            shutil.copy2(
+                os.path.join(avatar_dir, src_name),
+                os.path.join(avatar_dir, dest_name),
+            )
+            return dest_name
+
         users = {}
         for username, email in users_raw:
-            u = User(username=username, email=email, password_hash=pw)
+            avatar_filename = copy_avatar(random.choice(avatar_src_files))
+            u = User(username=username, email=email, password_hash=pw,
+                     avatar_filename=avatar_filename)
             db.session.add(u)
             users[username] = u
         db.session.commit()

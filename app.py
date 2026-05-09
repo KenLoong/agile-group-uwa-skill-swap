@@ -275,7 +275,8 @@ def account():
                 return render_template('account.html', title='Account', form=form)
         db.session.commit()
         flash('Profile updated.', 'success')
-        return redirect(url_for('account'))
+        next_url = request.form.get('next') or url_for('account')
+        return redirect(next_url)
     return render_template('account.html', title='Account', form=form)
 
 
@@ -555,11 +556,12 @@ def post_comment(post_id):
         db.session.commit()
         if wants_json:
             return jsonify({
-                'ok':            True,
-                'username':      current_user.username,
-                'timestamp':     comment.timestamp.strftime('%Y-%m-%d %H:%M'),
-                'content':       comment.content,
-                'comment_count': post.comment_count,
+                'ok':              True,
+                'username':        current_user.username,
+                'timestamp':       comment.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'content':         comment.content,
+                'comment_count':   post.comment_count,
+                'avatar_filename': current_user.avatar_filename or '',
             })
         flash('Your comment has been added!', 'success')
     else:

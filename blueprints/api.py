@@ -11,6 +11,7 @@ from flask import Blueprint, Flask, jsonify
 
 from api.featured_blueprint import bp as featured_posts_bp
 from api.filter_blueprint import bp as discover_filter_bp
+from api.stats_blueprint import bp as stats_public_bp
 from api.tags_blueprint import bp as tags_json_blueprint
 
 bp = Blueprint("api_extra", __name__, url_prefix="/api")
@@ -28,9 +29,10 @@ def api_version():
 
 def register_api_blueprints(app: Flask) -> None:
     """
-    Register tag cloud, discover filter, pinned featured JSON, ``/api/health``.
+    Register tag cloud, discover filter, pinned featured JSON, public stats, ``/api/health``.
     """
     app.register_blueprint(tags_json_blueprint)
     app.register_blueprint(discover_filter_bp)
     app.register_blueprint(featured_posts_bp)
+    app.register_blueprint(stats_public_bp)
     app.register_blueprint(bp)

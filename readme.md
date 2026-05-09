@@ -20,7 +20,9 @@ In a university environment, students possess diverse talents beyond their prima
 *   **Skill Management (CRUD):** Users can post "skills offered," edit their listings, or delete them once a partner is found.
 *   **Dynamic Discovery:** A responsive homepage featuring **AJAX-powered filtering** to browse skills by category (e.g., Coding, Languages, Music) without page reloads.
 *   **The "Interest" System:** A unique interaction module where users can express interest in a skill. The owner is then notified via their dashboard with the requester's contact details.
-*   **Engagement:** A clean, intuitive UI built with **Tailwind CSS** focusing on accessibility and ease of use.
+*   **User Profiles & Avatars:** Each user has a public profile page where they can upload or change their profile picture, set "want to learn" categories for bidirectional skill matching, and view their own posts.
+*   **Messaging:** Private one-to-one conversations between users with real-time polling and unread-message badges.
+*   **Engagement:** A clean, intuitive UI built with **Bootstrap 5** focusing on accessibility and ease of use.
 
 ---
 
@@ -28,10 +30,11 @@ In a university environment, students possess diverse talents beyond their prima
 
 | Layer | Technology |
 | :--- | :--- |
-| **Backend** | Python / Flask |
-| **Database** | SQLite + SQLAlchemy (ORM) |
-| **Frontend** | HTML5, CSS3 (Tailwind CSS), JavaScript |
-| **Interactivity** | JQuery + AJAX |
+| **Backend** | Python 3.10+ / Flask |
+| **Database** | SQLite + SQLAlchemy ORM + Flask-Migrate (Alembic) |
+| **Frontend** | HTML5, Bootstrap 5.3, custom CSS (`static/css/main.css`) |
+| **Interactivity** | jQuery + AJAX (filtering, CSRF, comments, messaging) |
+| **Auth & Forms** | Flask-Login, Flask-WTF (CSRF protection) |
 | **Version Control** | Git / GitHub |
 
 ---
@@ -51,7 +54,7 @@ flowchart TB
   subgraph client_layer["Client (browser)"]
     direction TB
     P["Static pages (HTML)"]
-    T["Tailwind + layout"]
+    T["Bootstrap 5 + main.css"]
     J["jQuery + AJAX calls"]
   end
 
@@ -126,8 +129,8 @@ When Mermaid is not rendered (plain text, some PDF exports), the same idea still
 ```
 +------------------+       HTTP        +-------------------------+
 |  Web client      | <---------------> |  Flask (Python)         |
-|  HTML / JS / CSS |   JSON, forms,    |  routes, sessions,     |
-|  Tailwind UI     |   templates      |  controllers            |
+|  HTML / JS / CSS |   JSON, forms,    |  routes, sessions,      |
+|  Bootstrap 5 UI  |   templates       |  controllers            |
 +--------+---------+                    +------------+------------+
          |                                            |
          |                              +-------------v-------------+
@@ -188,34 +191,51 @@ Clone the repository and install dependencies:
 ```bash
 # Clone the repository
 git clone https://github.com/KenLoong/agile-group-uwa-skill-swap.git
-cd agile-group-uwa-skill-swap 
+cd agile-group-uwa-skill-swap
 
 # Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install required libraries
 pip install -r requirements.txt
 ```
 
 ### 3. Database Setup & Seeding
-Initialize the SQLite database and populate it with demo data:
+Apply migrations and populate the database with demo data:
 ```bash
-export SECRET_KEY="dev-local-secret-for-checkpoint"
-make seed
-```
-*(Alternatively, you can run `python seed.py` manually).*
+# Apply all database migrations
+flask db upgrade
 
-**Demo Accounts:** After seeding, you can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au`. The password for all demo accounts is `password123`.
+# Seed demo users, posts, comments, likes, etc.
+python3 seed.py
+```
+
+> **Note:** `seed.py` wipes and repopulates all tables on every run. The seed avatar images (`h*.jpeg`) must exist in `static/uploads/avatars/` before running — they are included in the repository.
+
+**Demo Accounts** (password for all: `password123`):
+
+| Email | Offers | Wants |
+| :--- | :--- | :--- |
+| `alice@student.uwa.edu.au` | Coding | Language, Music |
+| `bob@student.uwa.edu.au` | Language, Yoga | Coding |
+| `carol@student.uwa.edu.au` | Music, Language | Coding |
+| `dave@student.uwa.edu.au` | Music, Sports | Music, Language |
+| `emma@student.uwa.edu.au` | Language, Sports | Sports |
+| `frank@student.uwa.edu.au` | Coding, Other | Language |
+| `grace@student.uwa.edu.au` | Language, Other | Coding |
+| `henry@student.uwa.edu.au` | Coding, Music, Other | Sports, Music |
 
 ### 4. Launching the Application
-Run the Flask development server using the production application factory (to use the real database, not the in-memory test DB):
 ```bash
-export SECRET_KEY="dev-local-secret-for-checkpoint"
-flask --app "app:create_production_app" run --debug
+python3 app.py
 ```
-*(Alternatively, you can use `make run` after exporting the secret key).*
-The application will be available at: `http://127.0.0.1:5000/`
+The application will be available at `http://127.0.0.1:5000/`
+
+> The `SECRET_KEY` environment variable is optional for local development — the app uses a built-in fallback. Set it explicitly in any shared or deployed environment:
+> ```bash
+> export SECRET_KEY="your-secret-here"
+> ```
 
 ---
 

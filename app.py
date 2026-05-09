@@ -104,6 +104,9 @@ def create_app(
         )
 
     db.init_app(app)
+    
+    from flask_migrate import Migrate
+    Migrate(app, db)
 
     login_manager = LoginManager()
     login_manager.init_app(app)
@@ -143,8 +146,12 @@ def create_app(
         return render_template("discover_preview.html")
 
     with app.app_context():
-        db.create_all()
-        _seed_categories_if_empty()
+        if testing:
+            db.create_all()
+        try:
+            _seed_categories_if_empty()
+        except Exception:
+            pass
 
     return app
 

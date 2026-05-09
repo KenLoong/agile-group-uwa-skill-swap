@@ -21,7 +21,7 @@ test:
 
 migrate:
 	@echo "Applying database migrations..."
-	flask db upgrade
+	flask --app "app:create_production_app" db upgrade
 
 seed:
 	@echo "Seeding test/demo data..."

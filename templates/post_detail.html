@@ -124,7 +124,7 @@
                            class="comment-username">{{ c.user.username }}</a>
                         <span class="comment-dot">·</span>
                         <time class="comment-time" datetime="{{ c.timestamp.isoformat() }}">
-                            {{ c.timestamp.strftime('%b %-d, %Y') }}
+                            {{ c.timestamp.strftime('%b') }} {{ c.timestamp.day }}, {{ c.timestamp.year }}
                             <span class="d-none d-sm-inline">at {{ c.timestamp.strftime('%H:%M') }}</span>
                         </time>
                     </div>

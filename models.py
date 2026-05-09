@@ -136,11 +136,12 @@ class Notification(db.Model):
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)   # recipient
     actor_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)   # author of comment
     post_id    = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    avatar_filename = db.Column(db.String(120), nullable=True)
     comment_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)
     notif_type = db.Column(db.String(20), nullable=False, default='mention')
     read       = db.Column(db.Boolean,  nullable=False, default=False)
     timestamp  = db.Column(db.DateTime, default=datetime.utcnow)
+    # Avatar is intentionally not stored here — access it via notification.actor.avatar_filename
+    # so that it always reflects the actor's current profile picture.
 
     recipient = db.relationship('User',    foreign_keys=[user_id], backref='notifications')
     actor     = db.relationship('User',    foreign_keys=[actor_id])

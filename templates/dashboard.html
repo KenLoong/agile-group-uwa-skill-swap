@@ -289,11 +289,18 @@
                 {% for n in notifications %}
                     <li class="list-group-item py-3 {% if not n.read %}notif-unread{% endif %}">
                         <div class="d-flex gap-3 align-items-start">
-                            <span class="avatar-circle flex-shrink-0"
-                                  style="width:2rem;height:2rem;font-size:0.8rem;
-                                         background:hsl({{ (n.actor.username|length * 47) % 360 }},55%,42%)">
-                                {{ n.actor.username[0]|upper }}
-                            </span>
+                            {% if n.actor.avatar_filename %}
+                                <img src="{{ url_for('static', filename='uploads/avatars/' + n.actor.avatar_filename) }}"
+                                     alt="{{ n.actor.username }}"
+                                     class="avatar-circle flex-shrink-0"
+                                     style="width:2rem;height:2rem;" />
+                            {% else %}
+                                <span class="avatar-circle flex-shrink-0"
+                                      style="width:2rem;height:2rem;font-size:0.8rem;
+                                             background:hsl({{ (n.actor.username|length * 47) % 360 }},55%,42%)">
+                                    {{ n.actor.username[0]|upper }}
+                                </span>
+                            {% endif %}
                             <div class="flex-grow-1 min-w-0">
                                 <p class="mb-1 small">
                                     <a href="{{ url_for('user_profile', username=n.actor.username) }}" class="fw-semibold">

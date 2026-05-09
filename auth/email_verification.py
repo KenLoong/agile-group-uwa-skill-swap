@@ -149,13 +149,47 @@ def _sign_payload(user_id: UserId, raw_token: str) -> str:
 def _parse_signed_payload(
     s: str,
 ) -> tuple[str, UserId, str] | None:
-    parts = s.split("|", maxsplit=2)
-    if len(parts) < 2:
+    """Parse a public email-verification token without raising on bad input.
+
+    Expected public shape:
+
+        raw_token|user_id|mac
+
+    User-controlled token strings may be incomplete, non-numeric, replayed,
+    copied incorrectly, or manually edited. Bad shape should return None so the
+    service can raise TokenInvalidError and the Flask route can return a safe
+    400 response instead of a 500.
+    """
+    if not isinstance(s, str):
         return None
-    raw, uid = parts[0], int(parts[1]) if len(parts) > 1 else -1
-    mac = parts[2] if len(parts) > 2 else ""
+
+    parts = s.split("|")
+    if len(parts) != 3:
+        return None
+
+    raw = parts[0].strip()
+    uid_text = parts[1].strip()
+    mac = parts[2].strip()
+
+    if not raw or not uid_text or not mac:
+        return None
+
+    try:
+        uid = int(uid_text)
+    except (TypeError, ValueError):
+        return None
+
     if uid < 0:
         return None
+
+    if len(mac) != 32:
+        return None
+
+    try:
+        int(mac, 16)
+    except ValueError:
+        return None
+
     return raw, UserId(uid), mac
 
 

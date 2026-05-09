@@ -46,6 +46,30 @@ Supported outcomes:
 
 API-style clients and unit tests can still receive JSON responses. Browser requests that prefer `text/html` receive an HTML result page.
 
+## Malformed token handling
+
+Verification links are user-controlled once they leave the server, so the verification route must treat every token string as untrusted input.
+
+Malformed token strings include:
+
+- missing token parts;
+- non-numeric user ids;
+- missing MAC values;
+- MAC values with the wrong length;
+- manually edited or replayed token strings.
+
+Malformed tokens are handled as invalid verification links. The service raises `TokenInvalidError`, and the Flask route returns a safe `400` response. Browser users receive the invalid-link result page, while JSON clients receive:
+
+```json
+{
+  "ok": false,
+  "status": "invalid",
+  "message": "This verification link is invalid or has already been used."
+}
+```
+
+Malformed token handling should not produce an unhandled exception or a Flask 500 page.
+
 ## Environment variables
 
 | Variable | Meaning |

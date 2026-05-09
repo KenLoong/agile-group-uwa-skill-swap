@@ -6,7 +6,13 @@ import time
 import unittest
 from dataclasses import dataclass
 
-from auth.email_verification import EmailVerificationService, _InMemoryTokenStore, _hash_token, _sign_payload
+from auth.email_verification import (
+    EmailVerificationService,
+    _InMemoryTokenStore,
+    _hash_token,
+    _parse_signed_payload,
+    _sign_payload,
+)
 from auth.exceptions import ResendThrottledError, TokenExpiredError, TokenInvalidError
 from auth.mailer import DevConsoleMailer
 from auth.constants import TEST_SECRET_KEY
@@ -76,6 +82,35 @@ class TestEmailVerificationService(unittest.TestCase):
     def test_hash_token_stable_shape(self) -> None:
         h = _hash_token("x")
         self.assertEqual(len(h), 64)
+
+    def test_malformed_signed_payloads_do_not_raise_parser_errors(self) -> None:
+        malformed_tokens = [
+            "",
+            "only-one-part",
+            "raw|not-a-number|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "raw|-1|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "raw|1|short",
+            "raw|1|not-hex-not-hex-not-hex-000000",
+            "|1|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "raw||aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "raw|1|",
+            "raw|1|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|extra",
+        ]
+
+        for token in malformed_tokens:
+            with self.subTest(token=token):
+                self.assertIsNone(_parse_signed_payload(token))
+
+                with self.assertRaises(TokenInvalidError):
+                    self.svc.verify_and_consume(token)
+
+
+    def test_parse_signed_payload_accepts_valid_shape(self) -> None:
+        token = "raw-token|42|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+        parsed = _parse_signed_payload(token)
+
+        self.assertEqual(parsed, ("raw-token", 42, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
 
 
 if __name__ == "__main__":

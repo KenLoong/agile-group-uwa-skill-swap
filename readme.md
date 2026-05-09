@@ -1,8 +1,6 @@
 # 🎓 UWA Skill-Swap
 ### *Connect. Exchange. Excel.*
 
-> **Contributing:** see [`CONTRIBUTING.md`](CONTRIBUTING.md) — it links to the [system architecture](#system-architecture) diagram below for onboarding.
-
 **UWA Skill-Swap** is a web-based platform designed specifically for University of Western Australia students to exchange knowledge and skills. Whether you are a coding pro looking to learn guitar, or a linguist wanting to understand data science, this platform facilitates peer-to-peer learning through a persistent, user-friendly client-server application.
 
 ---
@@ -16,11 +14,19 @@ In a university environment, students possess diverse talents beyond their prima
 *   **Provide a practical utility** for students to find tutors or hobbyist partners without financial barriers.
 
 ### Design & Features
-*   **User Authentication:** Secure login/logout system with UWA email verification.
-*   **Skill Management (CRUD):** Users can post "skills offered," edit their listings, or delete them once a partner is found.
-*   **Dynamic Discovery:** A responsive homepage featuring **AJAX-powered filtering** to browse skills by category (e.g., Coding, Languages, Music) without page reloads.
-*   **The "Interest" System:** A unique interaction module where users can express interest in a skill. The owner is then notified via their dashboard with the requester's contact details.
-*   **Engagement:** A clean, intuitive UI built with **Tailwind CSS** focusing on accessibility and ease of use.
+*   **User Authentication:** Secure login/logout with Flask-Login; registration enforces `@student.uwa.edu.au` email and password hashing.
+*   **Skill Management (CRUD):** Users can post skills, edit or delete their own listings.
+*   **Dynamic Discovery:** Homepage with **jQuery AJAX** category filtering against `/api/filter`, **pagination**, **sort** (newest / most interest), and keyword search (title and description).
+*   **Categories:** Normalised **`Category`** table (slug + label) with seed data and Alembic migrations—not a free-text field on posts.
+*   **Cover images:** Optional **post cover** upload (validated type/size, stored under `static/uploads/posts/`, ignored by Git except `.gitkeep`).
+*   **Rich descriptions:** Post bodies use **Markdown** (rendered with **Bleach** sanitisation). Card previews use plain-text snippets derived from Markdown.
+*   **Engagement:** Each post stores **comment** and **like** counts (updated when comments are added or likes toggled). Discovery cards and the post header show both; logged-in users (except the author) can **like/unlike** via AJAX. Sort option **Most likes** is available on Discover.
+*   **Public profiles:** **`/user/<username>`** lists that member’s skills — also linked from the **Profile** nav item (your page), author names on cards, comments, and dashboard rows.
+*   **For you:** Logged-in users see **recommended skills** from categories they’ve posted in or shown interest in (excluding their own posts and ones they’ve already marked as interested).
+*   **Save for later:** Bookmark posts (not your own); manage them under **Dashboard → Saved for later**.
+*   **Interaction:** Comments on posts (**AJAX** submit without a full page reload); **Express interest** with dashboard views for **interests received** (who contacted you about your posts) and **my interests** (skills you marked as interested), including contact email for inbound interest.
+*   **Security & config:** **CSRF protection** (Flask-WTF) on forms and AJAX `POST`s; `SECRET_KEY` and optional `DATABASE_URL` read from the environment.
+*   **UI:** Responsive layouts with **Bootstrap 5** and lightweight **client-side validation** on register, login, and post forms.
 
 ---
 
@@ -29,141 +35,10 @@ In a university environment, students possess diverse talents beyond their prima
 | Layer | Technology |
 | :--- | :--- |
 | **Backend** | Python / Flask |
-| **Database** | SQLite + SQLAlchemy (ORM) |
-| **Frontend** | HTML5, CSS3 (Tailwind CSS), JavaScript |
-| **Interactivity** | JQuery + AJAX |
+| **Database** | SQLite + SQLAlchemy (ORM) + Flask-Migrate (Alembic) |
+| **Frontend** | HTML5, Jinja2, Bootstrap 5, JavaScript |
+| **Interactivity** | jQuery + AJAX |
 | **Version Control** | Git / GitHub |
-
----
-
-## System architecture
-
-This section is the canonical place to understand how the **client**, the **Flask** application, and **SQLAlchemy** cooperate at runtime. New contributors should read it before opening pull requests; the [contribution guide](CONTRIBUTING.md) also points here.
-
-The stack follows a classic three-layer shape on the server: HTTP enters Flask view functions, which delegate persistence to the ORM. The client stays thin: HTML pages plus JavaScript that issues asynchronous requests so list filtering and “interest” actions can feel responsive without full page reloads.
-
-### High-level flow (diagram)
-
-The diagram below is intentionally explicit about the boundaries between the browser, Flask’s request/response cycle, the SQLAlchemy session, and the SQLite file. It is a teaching aid for the unit learning outcomes and for sprint planning when we change routes or models.
-
-```mermaid
-flowchart TB
-  subgraph client_layer["Client (browser)"]
-    direction TB
-    P["Static pages (HTML)"]
-    T["Tailwind + layout"]
-    J["jQuery + AJAX calls"]
-  end
-
-  subgraph flask_layer["Flask application"]
-    direction TB
-    W["Werkzeug / routing"]
-    V["View functions (controllers)"]
-    A["Form validation & business rules"]
-    SE["Flask session / cookies"]
-  end
-
-  subgraph orm_layer["SQLAlchemy ORM"]
-    direction TB
-    MD["Model classes (Python)"]
-    SM["Session & Unit of Work"]
-    QY["Query API"]
-  end
-
-  subgraph storage["Persistence"]
-    DB[("SQLite database file")]
-  end
-
-  P --> W
-  T --> P
-  J -->|HTTP JSON or form posts| W
-  W --> V
-  V --> A
-  V --> SE
-  V --> MD
-  MD --> SM
-  SM --> QY
-  QY --> DB
-  DB -->|rows mapped to objects| MD
-  V -->|rendered templates| P
-```
-
-### Request path (one interactive action)
-
-A typical user-driven round trip looks like the sequence below. This is a simplified, documentation-only sketch; the real code may add redirects, error handlers, and CSRF or login checks as the project evolves.
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant C as Client JS
-  participant F as Flask view
-  participant S as SQLAlchemy
-  participant D as SQLite
-
-  U->>C: click / type in UI
-  C->>F: HTTP request (e.g. AJAX)
-  F->>S: load or persist models
-  S->>D: SQL statements
-  D-->>S: result set
-  S-->>F: ORM objects or aggregates
-  F-->>C: JSON or HTML response
-  C-->>U: update DOM
-```
-
-### Legend (quick reference)
-
-| Path | Role |
-| :--- | :--- |
-| Client | What the user sees; sends HTTP to Flask, receives pages or small JSON payloads. |
-| Flask | Wires URLs to Python functions, enforces access rules, returns responses. |
-| SQLAlchemy | Expresses domain objects and generates SQL; keeps Python types aligned with tables. |
-| SQLite | Durable file-backed storage used in development and the baseline deployment story. |
-
-### ASCII sketch (portable, copy-paste friendly)
-
-When Mermaid is not rendered (plain text, some PDF exports), the same idea still fits in a small box:
-
-```
-+------------------+       HTTP        +-------------------------+
-|  Web client      | <---------------> |  Flask (Python)         |
-|  HTML / JS / CSS |   JSON, forms,    |  routes, sessions,     |
-|  Tailwind UI     |   templates      |  controllers            |
-+--------+---------+                    +------------+------------+
-         |                                            |
-         |                              +-------------v-------------+
-         |                              |  SQLAlchemy ORM            |
-         |                              |  models, session, queries |
-         |                              +-------------+------------+
-         |                                            |
-         |                              +-------------v-------------+
-         |                              |  SQLite (database file)   |
-         |                              +---------------------------+
-         |                                            |
-         +--------------------------------------------+
-              user sees updated lists / messages
-```
-
-### Notes for future documentation edits
-
-* Keep this section synchronized when we add blueprints, API namespaces, or database migrations.  
-* If we introduce a separate front-end build step, draw an extra box for the bundler; Flask remains the single HTTP entry for server-rendered pages in the current design.  
-* For deployment diagrams (reverse proxy, WSGI server), add a separate doc; this README block stays focused on **client ↔ Flask ↔ SQLAlchemy** only.  
-* The teaching team and peers should be able to trace any user story from UI touchpoint down to a model without opening more than a handful of files.  
----
-
-## API contracts
-
-The main AJAX-facing JSON endpoints are documented in [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md).
-
-This contract covers the discover filtering endpoint, tag metadata endpoint, public statistics endpoint, and dashboard chart endpoint. It is intended to keep frontend JavaScript, Flask routes, and future tests aligned as the project grows.
-
----
-
-## Post lifecycle
-
-Skill posts use the lifecycle states `open`, `matched`, and `closed`.
-
-Contributor-facing rules are documented in [`docs/POST_LIFECYCLE.md`](docs/POST_LIFECYCLE.md). A static user-facing help page is available at [`pages/post-lifecycle-help.html`](pages/post-lifecycle-help.html).
 
 ---
 
@@ -171,66 +46,139 @@ Contributor-facing rules are documented in [`docs/POST_LIFECYCLE.md`](docs/POST_
 
 | UWA ID | Name | GitHub Account |
 | :--- | :--- | :--- |
-| `[24702822]` | Warson Long | [KenLoong](https://github.com/KenLoong) |
-| `[24319908]` | Dylan Yuxuan Xi | [dylayXi](https://github.com/dylayXi) |
-| `[24920808]` | Shawn Wang | [Lipo021](https://github.com/Lipo021) |
-| `[24684008]` | Nuwanga Niroshan Hewa Wiladdarage | [NuwangaNiroshan](https://github.com/NuwangaNiroshan) |
+| `[24702822]` | Warson | [Warson Long](https://github.com/WarsonLong) |
+| `[24319908]` | Dylan | [Yuxuan Xi](https://github.com/dylayXi) |
+| `[24920808]` | Shawn | [Shawn Wang](https://github.com/Lipo021) |
+| `[24684008]` | Nuwanga | [Nuwanga Niroshan](https://github.com/NuwangaNiroshan) |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 How to run locally
 
-### 1. Prerequisites
-Ensure you have Python 3.10+ installed. It is recommended to use a virtual environment.
+### Prerequisites
+* **Python 3.10+** (3.11+ recommended)
+* `pip` (use a **virtual environment**; on macOS/Homebrew Python you may see an “externally managed” error if you skip the venv step)
 
-### 2. Installation
-Clone the repository and install dependencies:
+### 1. Clone and enter the project
 ```bash
-# Clone the repository
-git clone https://github.com/KenLoong/agile-group-uwa-skill-swap.git
-cd agile-group-uwa-skill-swap 
+git clone <your-repository-url>
+cd demo-for-agile-develop
+```
+*(Replace the folder name if your clone path differs.)*
 
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+### 2. Create and activate a virtual environment
+```bash
+python3 -m venv .venv
+```
+**macOS / Linux:**
+```bash
+source .venv/bin/activate
+```
+**Windows (cmd):**
+```bat
+.venv\Scripts\activate.bat
+```
+**Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
-# Install required libraries
+### 3. Install dependencies
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup & Seeding
-Initialize the SQLite database and populate it with demo data:
-```bash
-export SECRET_KEY="dev-local-secret-for-checkpoint"
-make seed
-```
-*(Alternatively, you can run `python seed.py` manually).*
+### 4. Configuration (optional)
 
-**Demo Accounts:** After seeding, you can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au`. The password for all demo accounts is `demo12345`.
+Copy `.env.example` to `.env` and set values (see `.gitignore`: `.env` is not committed):
 
-### 4. Launching the Application
-Run the Flask development server using the production application factory (to use the real database, not the in-memory test DB):
+* **`SECRET_KEY`** — required in production; in development you can omit it to use a built-in insecure default.
+* **`DATABASE_URL`** — optional; defaults to `sqlite:///database.db` in the project root.
+
+### 5. Database migrations
+
+Schema is managed with **Flask-Migrate**. After installing dependencies, apply migrations to create or update tables:
+
 ```bash
-export SECRET_KEY="dev-local-secret-for-checkpoint"
-flask --app "app:create_production_app" run --debug
+export FLASK_APP=app.py
+flask db upgrade
 ```
-*(Alternatively, you can use `make run` after exporting the secret key).*
-The application will be available at: `http://127.0.0.1:5000/`
+
+On Windows: `set FLASK_APP=app.py` then `flask db upgrade`.
+
+The `migrations/` folder in the repo holds Alembic revision history (evidence of DB migrations for coursework).
+
+### 6. Sample data (optional)
+
+Clears existing rows and inserts demo users/posts/interests. Run **after** `flask db upgrade` so tables exist:
+
+```bash
+python seed.py
+```
+
+Test logins (after seeding):
+
+* `alice@student.uwa.edu.au` / `password123`
+* `bob@student.uwa.edu.au` / `password123`
+* `carol@student.uwa.edu.au` / `password123`
+
+### 7. Start the development server
+
+```bash
+export FLASK_APP=app.py
+python app.py
+```
+
+Then open **http://127.0.0.1:5000/** in your browser.
+
+**Alternative — Flask CLI**
+
+```bash
+export FLASK_APP=app.py
+flask run
+```
+
+On Windows, use `set FLASK_APP=app.py` instead of `export`.
+
+### Notes
+
+* The SQLite file is **`database.db`** in the project root (ignored by Git). Each developer keeps their own local file.
+* Creating a new migration after model changes: `flask db migrate -m "describe change"` then `flask db upgrade`.
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Tests
 
-We use the standard Python `unittest` library to ensure application stability.
+The repository includes:
 
-To run the full test suite (including models, routes, and authentication logic):
+* **Unit / route tests** — authentication, access control, interest/like toggling, post status, bookmarks, tags, skill matching, @mention notifications, private messaging, and `/api/stats`
+* **Selenium browser tests** — register, login/logout, post creation, search, interest UI, @mention comment, stats charts, and private messaging flow
+
+Install test dependencies with:
 ```bash
-# Run all tests
-python -m unittest discover tests
-
-# Run specific test file
-python -m unittest tests/test_auth.py
+pip install -r requirements-dev.txt
 ```
+
+Run all tests:
+```bash
+python -m unittest discover tests
+```
+
+Run only the unit tests:
+```bash
+python -m unittest tests.test_unit
+```
+
+Run only the Selenium tests:
+```bash
+python -m unittest tests.test_selenium
+```
+
+### Selenium notes
+
+* The Selenium suite starts a **live local Flask server** automatically.
+* Install **Chrome/Chromium** and **chromedriver**, or set `CHROMEDRIVER_PATH` if your driver is not on `PATH`.
+* If Chromium is installed in a non-standard location, set `CHROME_BIN`.
 
 ---
 

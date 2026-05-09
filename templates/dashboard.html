@@ -1,123 +1,371 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Dashboard — UWA Skill-Swap</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
-<body class="bg-light">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container d-flex flex-wrap align-items-center gap-3">
-      <span class="navbar-brand fw-semibold mb-0">UWA Skill-Swap</span>
-      <div class="ms-lg-auto d-flex flex-wrap align-items-center gap-2 text-white py-2 py-lg-0">
-        <span id="notification-unread-wrap"
-              class="align-items-center gap-2 {% if notification_unread_count %}d-inline-flex{% else %}d-none{% endif %}">
-          <span id="notification-unread-badge"
-                class="badge bg-danger rounded-pill"
-                {% if notification_unread_count %}data-count="{{ notification_unread_count }}"{% endif %}>{{ notification_unread_count or 0 }}</span>
-          <span class="small text-white-50">unread inbox</span>
-        </span>
-        <button type="button"
-                id="dashboard-mark-all-read"
-                class="btn btn-sm btn-light"
-                aria-label="Mark all notifications read">Mark all as read</button>
-      </div>
+{% extends "base.html" %}
+{% block title %}Dashboard · UWA Skill-Swap{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <h1 class="h3 mb-0">Dashboard</h1>
+    {% if matches %}
+        <a href="#pane-matches" id="match-banner"
+           class="btn btn-success d-inline-flex align-items-center gap-2"
+           data-target-tab="tab-matches">
+            🤝 <strong>{{ matches|length }} Swap Match{{ 'es' if matches|length > 1 else '' }} Found!</strong>
+            <span class="badge bg-white text-success">Click to view</span>
+        </a>
+    {% endif %}
+</div>
+
+{# ── Wanted Skills ─────────────────────────────────────────────── #}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex align-items-baseline justify-content-between gap-2 mb-1">
+            <h2 class="h6 mb-0">Skills I want to learn</h2>
+            <span id="wanted-save-status" class="small text-success d-none">Saved ✓</span>
+        </div>
+        <p class="small text-muted mb-3">
+            Select categories you'd like to learn — the system uses these to find
+            bidirectional <strong>swap matches</strong> for you.
+        </p>
+        <div id="wanted-cat-bar" class="d-flex flex-wrap gap-2"
+             data-url="{{ url_for('save_wanted_skills') }}">
+            {% for cat in all_cats %}
+                <button type="button"
+                        class="btn btn-sm wanted-cat-btn {% if cat.id in wanted_ids %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                        data-cat-id="{{ cat.id }}">
+                    {{ cat.label }}
+                </button>
+            {% endfor %}
+        </div>
     </div>
-  </nav>
+</div>
 
-  <main class="container py-4">
-    <header class="mb-4">
-      <h1 class="h2 mb-2">Dashboard</h1>
-      <p class="text-secondary mb-0">Skills you want to learn — choose categories below. Changes save automatically.</p>
-    </header>
+{# ── Dashboard tabs ────────────────────────────────────────────── #}
+<ul class="nav nav-tabs mb-3 flex-wrap" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-posts"
+                data-bs-toggle="tab" data-bs-target="#pane-posts" type="button" role="tab">
+            My skills
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-matches"
+                data-bs-toggle="tab" data-bs-target="#pane-matches" type="button" role="tab">
+            Matches
+            {% if matches %}<span class="badge bg-success ms-1">{{ matches|length }}</span>{% endif %}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-incoming"
+                data-bs-toggle="tab" data-bs-target="#pane-incoming" type="button" role="tab">
+            Interests received
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-sent"
+                data-bs-toggle="tab" data-bs-target="#pane-sent" type="button" role="tab">
+            My interests
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-saved"
+                data-bs-toggle="tab" data-bs-target="#pane-saved" type="button" role="tab">
+            Saved for later
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-notif"
+                data-bs-toggle="tab" data-bs-target="#pane-notif" type="button" role="tab">
+            Mentions
+            {% set unread = notifications | selectattr('read', 'equalto', false) | list %}
+            {% if unread %}
+                <span class="badge bg-danger ms-1">{{ unread | length }}</span>
+            {% endif %}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-my-stats"
+                data-bs-toggle="tab" data-bs-target="#pane-my-stats" type="button" role="tab">
+            My Stats
+        </button>
+    </li>
+</ul>
 
-    <section class="card shadow-sm">
-      <div class="card-body p-4">
-        <h2 class="h5 mb-3">Wanted categories</h2>
-        <p class="small text-muted">Toggle the categories you are looking for on the exchange.</p>
-
-        <div id="wanted-cat-bar" class="d-flex flex-wrap gap-2 mb-2" data-url="{{ save_url }}">
-          {% for cat in all_cats %}
-          <button type="button"
-                  class="btn btn-sm wanted-cat-btn {% if cat.id in wanted_ids %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-                  data-cat-id="{{ cat.id }}">{{ cat.label }}</button>
-          {% endfor %}
-        </div>
-        <p id="wanted-save-status" class="small text-success d-none mb-0" role="status" aria-live="polite">Saved.</p>
-
-        {% if not all_cats %}
-        <p class="small text-warning mb-0">No categories are defined yet. Ask an administrator to seed categories.</p>
-        {% endif %}
-      </div>
-    </section>
-    <section class="card shadow-sm mt-4">
-      <div class="card-body p-4">
-        <h2 class="h5 mb-2">Recommended for you</h2>
-        <p class="small text-muted mb-3">Open listings in categories you marked as wanted. Your own posts and ones you already flagged interest in are hidden.</p>
-        {% if rec_posts %}
-        <ul class="list-group list-group-flush">
-          {% for p in rec_posts %}
-          <li class="list-group-item d-flex justify-content-between align-items-start px-0">
-            <div>
-              <a class="fw-medium" href="{{ url_for('posts.get_post_stub', post_id=p.id) }}">{{ p.title }}</a>
-              <div class="small text-muted">{{ p.category['label'] }} · {{ p.status }}</div>
+<div class="tab-content">
+    {# ── My Skills ──────────────────────────────────────────────── #}
+    <div class="tab-pane fade show active" id="pane-posts" role="tabpanel">
+        {% if my_posts %}
+            <div class="table-responsive shadow-sm rounded border bg-white">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Posted</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in my_posts %}
+                            <tr>
+                                <td><a href="{{ url_for('post_detail', post_id=p.id) }}">{{ p.title }}</a></td>
+                                <td><span class="badge bg-primary">{{ p.category.label }}</span></td>
+                                <td>
+                                    <select class="form-select form-select-sm status-select post-status-select"
+                                            style="min-width: 140px;"
+                                            data-url="{{ url_for('set_post_status', post_id=p.id) }}"
+                                            data-current="{{ p.status }}">
+                                        <option value="open"    {% if p.status == 'open'    %}selected{% endif %}>🟢 Open</option>
+                                        <option value="matched" {% if p.status == 'matched' %}selected{% endif %}>🤝 Matched</option>
+                                        <option value="closed"  {% if p.status == 'closed'  %}selected{% endif %}>⭕ Closed</option>
+                                    </select>
+                                </td>
+                                <td class="small text-muted">{{ p.timestamp.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ url_for('update_post', post_id=p.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <form method="post" action="{{ url_for('delete_post', post_id=p.id) }}" class="d-inline"
+                                          onsubmit="return confirm('Delete this post?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-          </li>
-          {% endfor %}
-        </ul>
-        <p class="small text-secondary mt-2 mb-0">JSON: <code>/api/dashboard/recommendations</code></p>
         {% else %}
-        <p class="small text-secondary mb-0">No matches yet. Pick wanted categories above or check back when more peers post in those areas.</p>
+            <p class="text-muted">You have not posted any skills yet.
+                <a href="{{ url_for('new_post') }}">Create one</a>.
+            </p>
         {% endif %}
-      </div>
-    </section>
+    </div>
 
-    <section class="card shadow-sm mt-4">
-      <div class="card-body p-4">
-        <h2 class="h5 mb-2">Interest received</h2>
-        <p class="small text-muted mb-3">People who clicked interest on <strong>your</strong> listings (newest first).</p>
+    {# ── Matches ────────────────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-matches" role="tabpanel">
+        {% if not current_user.wanted_categories %}
+            <div class="alert alert-info">
+                Select at least one category you want to learn (above) and post a skill you offer
+                to discover swap partners.
+            </div>
+        {% elif not my_posts %}
+            <div class="alert alert-info">
+                Post a skill you can offer first, then matches will appear here.
+            </div>
+        {% elif matches %}
+            <p class="text-muted small mb-3">
+                These users offer what you want to learn <strong>and</strong> want to learn something you offer.
+                Reach out by expressing interest in their post!
+            </p>
+            {% for m in matches %}
+                <div class="match-card card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="avatar-circle"
+                                  style="background: hsl({{ (m.user.username|length * 47) % 360 }}, 55%, 42%);">
+                                {{ (m.user.username[0] if m.user.username else '?')|upper }}
+                            </span>
+                            <div>
+                                <h5 class="mb-0">
+                                    <a href="{{ url_for('user_profile', username=m.user.username) }}">
+                                        {{ m.user.username }}
+                                    </a>
+                                </h5>
+                                <span class="badge bg-success">🤝 Skill Swap Match</span>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-2 fw-semibold">Skills they offer that you want to learn:</p>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            {% for post in m.their_posts %}
+                                <a href="{{ url_for('post_detail', post_id=post.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    {{ post.title }}
+                                    <span class="badge bg-primary ms-1">{{ post.category.label }}</span>
+                                </a>
+                            {% endfor %}
+                            <a href="{{ url_for('conversation', username=m.user.username) }}"
+                               class="btn btn-sm btn-success ms-auto">
+                                💬 Message
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No matches found yet. Make sure you have open posts and keep exploring!</p>
+        {% endif %}
+    </div>
 
-        {% if incoming_interests %}
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead class="table-light">
-              <tr>
-                <th scope="col">Your listing</th>
-                <th scope="col">Interested user</th>
-                <th scope="col">Category</th>
-                <th scope="col">When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in incoming_interests %}
-              <tr>
-                <td><a href="{{ url_for('posts.get_post_stub', post_id=row.post['id']) }}">{{ row.post['title'] }}</a></td>
-                <td>{{ row.sender['username'] or row.sender['email'] }}</td>
-                <td><span class="badge text-bg-light border">{{ row.category['label'] }}</span></td>
-                <td class="text-secondary small">{{ row.at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    {# ── Interests received ─────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-incoming" role="tabpanel">
+        {% if incoming %}
+            <ul class="list-group shadow-sm">
+                {% for it in incoming %}
+                    <li class="list-group-item py-3">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                            <strong>
+                                <a href="{{ url_for('user_profile', username=it.sender.username) }}">
+                                    {{ it.sender.username }}
+                                </a>
+                            </strong>
+                            <span class="small text-muted">{{ it.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <p class="mb-1 small">Interested in your post:
+                            <a href="{{ url_for('post_detail', post_id=it.post_ref.id) }}">{{ it.post_ref.title }}</a>
+                        </p>
+                        <p class="mb-0 small"><span class="text-muted">Contact:</span> {{ it.sender.email }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">Nobody has expressed interest in your posts yet.</p>
+        {% endif %}
+    </div>
+
+    {# ── My interests ───────────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-sent" role="tabpanel">
+        {% if sent %}
+            <ul class="list-group shadow-sm">
+                {% for it in sent %}
+                    <li class="list-group-item py-3">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                            <a href="{{ url_for('post_detail', post_id=it.post_ref.id) }}">
+                                <strong>{{ it.post_ref.title }}</strong>
+                            </a>
+                            <span class="small text-muted">{{ it.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            Host:
+                            <a href="{{ url_for('user_profile', username=it.post_ref.author.username) }}">
+                                {{ it.post_ref.author.username }}
+                            </a>
+                            · {{ it.post_ref.category.label }}
+                        </p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">You have not shown interest in any skills yet.
+                Browse the <a href="{{ url_for('index') }}">discovery page</a>.
+            </p>
+        {% endif %}
+    </div>
+
+    {# ── Saved for later ────────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-saved" role="tabpanel">
+        {% if saved %}
+            <ul class="list-group shadow-sm">
+                {% for bm in saved %}
+                    <li class="list-group-item py-3 d-flex flex-wrap justify-content-between gap-2 align-items-center">
+                        <div>
+                            <a href="{{ url_for('post_detail', post_id=bm.post.id) }}">
+                                <strong>{{ bm.post.title }}</strong>
+                            </a>
+                            <p class="small text-muted mb-0">
+                                <a href="{{ url_for('user_profile', username=bm.post.author.username) }}">
+                                    {{ bm.post.author.username }}
+                                </a>
+                                · {{ bm.post.category.label }}
+                                · saved {{ bm.timestamp.strftime('%Y-%m-%d') }}
+                            </p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger unsave-btn"
+                                data-url="{{ url_for('toggle_bookmark', post_id=bm.post.id) }}">
+                            Remove
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No saved posts.
+                Open a skill and click <strong>Save for later</strong>.
+            </p>
+        {% endif %}
+    </div>
+
+    {# ── Mentions ───────────────────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-notif" role="tabpanel">
+        {% if notifications %}
+            <ul class="list-group shadow-sm" id="notif-list">
+                {% for n in notifications %}
+                    <li class="list-group-item py-3 {% if not n.read %}notif-unread{% endif %}">
+                        <div class="d-flex gap-3 align-items-start">
+                            <span class="avatar-circle flex-shrink-0"
+                                  style="width:2rem;height:2rem;font-size:0.8rem;
+                                         background:hsl({{ (n.actor.username|length * 47) % 360 }},55%,42%)">
+                                {{ n.actor.username[0]|upper }}
+                            </span>
+                            <div class="flex-grow-1 min-w-0">
+                                <p class="mb-1 small">
+                                    <a href="{{ url_for('user_profile', username=n.actor.username) }}" class="fw-semibold">
+                                        @{{ n.actor.username }}
+                                    </a>
+                                    mentioned you in a comment on
+                                    <a href="{{ url_for('post_detail', post_id=n.post.id) }}">{{ n.post.title }}</a>
+                                </p>
+                                {% if n.comment %}
+                                    <blockquote class="notif-quote mb-1 small text-muted">
+                                        {{ n.comment.content | truncate(140) }}
+                                    </blockquote>
+                                {% endif %}
+                                <span class="small text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            {% if not n.read %}
+                                <span class="notif-unread-dot flex-shrink-0" title="Unread"></span>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="mark-all-read-btn">
+                    Mark all as read
+                </button>
+            </div>
+        {% else %}
+            <p class="text-muted">
+                No mentions yet. Try commenting on a post and tagging someone with <code>@username</code>.
+            </p>
+        {% endif %}
+    </div>
+
+    {# ── My Stats ───────────────────────────────────────────────────── #}
+    <div class="tab-pane fade" id="pane-my-stats" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-semibold border-0 pt-3 pb-0">
+                        My Skills by Category
+                    </div>
+                    <div class="card-body chart-container" style="height: 280px;">
+                        <canvas id="my-chart-donut" aria-label="My skills category donut chart" role="img"></canvas>
+                        <p id="my-stats-empty" class="text-muted small text-center d-none mt-3">
+                            Post a skill to see your category breakdown.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-semibold border-0 pt-3 pb-0">
+                        30-Day Activity – Likes &amp; Interests Received
+                    </div>
+                    <div class="card-body chart-container" style="height: 280px;">
+                        <canvas id="my-chart-activity" aria-label="My 30-day activity line chart" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
-        <p class="small text-secondary mt-2 mb-0">JSON: <code>/api/dashboard/interest-received</code></p>
-        {% else %}
-        <p class="small text-secondary mb-0">No incoming interest requests yet.</p>
-        {% endif %}
-      </div>
-    </section>
+        <p class="small text-muted mt-2">Charts load when you open this tab.</p>
+    </div>
 
-  </main>
+</div>
+{% endblock %}
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-          crossorigin="anonymous"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-          integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-          crossorigin="anonymous"></script>
-  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
-</body>
-</html>
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard_charts.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.username }} · UWA Skill-Swap{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Discover</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ profile_user.username }}</li>
+    </ol>
+</nav>
+
+{# ── Profile header ────────────────────────────────────────────────── #}
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+    <span class="avatar-circle flex-shrink-0"
+          style="width: 3.5rem; height: 3.5rem; font-size: 1.25rem;
+                 background: hsl({{ (profile_user.username|length * 47) % 360 }}, 55%, 42%)">
+        {{ (profile_user.username[0] if profile_user.username else '?')|upper }}
+    </span>
+    <div>
+        <h1 class="h3 mb-1">{{ profile_user.username }}</h1>
+        <p class="text-muted small mb-0">
+            {{ profile_user.email }}
+            · {% if posts|length == 1 %}1 skill listed{% else %}{{ posts|length }} skills listed{% endif %}
+            {% if is_owner %}
+                · <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            {% endif %}
+        </p>
+
+        {# "Wants to learn" badges (read-only view for other users) #}
+        {% if not is_owner %}
+            {% if profile_user.wanted_categories %}
+                <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                    <span class="small text-muted">Wants to learn:</span>
+                    {% for cat in profile_user.wanted_categories %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                            {{ cat.label }}
+                        </span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if current_user.is_authenticated %}
+                <div class="mt-2">
+                    <a href="{{ url_for('conversation', username=profile_user.username) }}"
+                       class="btn btn-sm btn-outline-primary">
+                        💬 Message
+                    </a>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+{# ── Owner-only: editable "What I want to learn" ───────────────────── #}
+{% if is_owner %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+            <h2 class="h6 mb-0">What I want to learn</h2>
+            <span id="profile-save-status" class="small text-success d-none">Saved ✓</span>
+        </div>
+        <p class="small text-muted mb-3">
+            Select the skill categories you want to swap for. The platform uses this to find
+            <strong>bidirectional matches</strong>: someone who offers what you want, and also
+            wants what you offer. Matches appear in your
+            <a href="{{ url_for('dashboard') }}">Dashboard → Matches tab</a>.
+        </p>
+
+        {# How matching works – collapsible explainer #}
+        <details class="mb-3">
+            <summary class="small text-primary" style="cursor:pointer;">How does matching work?</summary>
+            <div class="small text-muted mt-2 ps-2 border-start border-2 border-primary-subtle">
+                <p class="mb-1"><strong>Step 1</strong> – Post at least one skill you can teach (any status = Open).</p>
+                <p class="mb-1"><strong>Step 2</strong> – Select the categories you want to learn below.</p>
+                <p class="mb-1"><strong>Step 3</strong> – The system scans all other users. A match is found when:</p>
+                <ul class="mb-0">
+                    <li>They have an open post in a category <em>you</em> want to learn, <strong>AND</strong></li>
+                    <li>They have selected a category in their "want to learn" list that <em>you</em> offer.</li>
+                </ul>
+                <p class="mt-1 mb-0">So it is always a two-way swap — neither person has to commit first.</p>
+            </div>
+        </details>
+
+        <div id="profile-wanted-bar" class="d-flex flex-wrap gap-2"
+             data-url="{{ url_for('save_wanted_skills') }}">
+            {% for cat in all_cats %}
+                <button type="button"
+                        class="btn btn-sm wanted-cat-btn
+                               {% if cat.id in wanted_ids %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                        data-cat-id="{{ cat.id }}">
+                    {{ cat.label }}
+                </button>
+            {% endfor %}
+        </div>
+
+        {# Live match preview #}
+        {% if wanted_ids %}
+            <p class="small text-muted mt-3 mb-0">
+                Go to your <a href="{{ url_for('dashboard') }}#matches">Dashboard → Matches</a>
+                to see your current swap partners.
+            </p>
+        {% else %}
+            <p class="small text-muted mt-3 mb-0">
+                💡 Select at least one category above and make sure you have an <strong>Open</strong> post —
+                then check the <a href="{{ url_for('dashboard') }}">Dashboard → Matches tab</a>.
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# ── Skills posted by this user ────────────────────────────────────── #}
+<h2 class="h5 mb-3">
+    {% if is_owner %}My skills{% else %}Skills by {{ profile_user.username }}{% endif %}
+</h2>
+
+{% if posts %}
+    <div class="row g-3">
+        {% for post in posts %}
+            <div class="col-md-6 col-xl-4">
+                <a href="{{ url_for('post_detail', post_id=post.id) }}" class="text-decoration-none text-reset">
+                    <div class="card h-100 shadow-sm border-0 overflow-hidden">
+                        {% if post.image_filename %}
+                            <img src="{{ url_for('static', filename='uploads/posts/' + post.image_filename) }}"
+                                 class="w-100 object-fit-cover" alt="" style="height: 120px;">
+                        {% endif %}
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ post.category.label }}</span>
+                                <span class="badge status-badge status-{{ post.status }}">
+                                    {% if post.status == 'open' %}🟢 Open
+                                    {% elif post.status == 'matched' %}🤝 Matched
+                                    {% else %}⭕ Closed{% endif %}
+                                </span>
+                            </div>
+                            <h3 class="h6 card-title text-truncate mb-1">{{ post.title }}</h3>
+                            {% if post.tags %}
+                                <div class="d-flex flex-wrap gap-1 mb-1">
+                                    {% for tag in post.tags[:3] %}
+                                        <span class="tag-pill">#{{ tag.label }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <p class="small text-muted mb-0">
+                                {{ post.timestamp.strftime('%Y-%m-%d') }}
+                                · {{ post.comment_count }} comments · {{ post.like_count }} likes
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="text-muted">
+        No skills posted yet.
+        {% if is_owner %}<a href="{{ url_for('new_post') }}">Post your first skill</a>{% endif %}
+    </p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_owner %}
+<script src="{{ url_for('static', filename='js/user_profile.js') }}"></script>
+{% endif %}
+{% endblock %}

@@ -1,128 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Register · UWA Skill-Swap</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+{% extends "base.html" %}
+{% block title %}Register · UWA Skill-Swap{% endblock %}
 
-<body class="bg-light min-vh-100 d-flex flex-column">
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-    <div class="container">
-        <a class="navbar-brand fw-semibold" href="/">UWA Skill-Swap</a>
-        <div class="ms-auto">
-            <a class="btn btn-outline-light btn-sm" href="/auth/login">Log in</a>
-        </div>
-    </div>
-</nav>
-
-<main class="flex-grow-1 py-5">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-7 col-lg-6 col-xl-5">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-4 p-md-5">
-                        <h1 class="h4 mb-2 text-center">Create an account</h1>
-
-                        <p class="small text-muted text-center mb-4">
-                            Use your <code>@student.uwa.edu.au</code> email. After registration,
-                            a verification link is sent through the development console mailer.
-                        </p>
-
-                        {% if success_message %}
-                        <div class="alert alert-success" role="alert">
-                            <strong>Check your inbox:</strong> {{ success_message }}
-                            {% if registered_email %}
-                            <div class="small mt-2">Registered email: <code>{{ registered_email }}</code></div>
-                            {% endif %}
-                        </div>
-                        <div class="text-center">
-                            <a class="btn btn-primary" href="/auth/login">Go to login</a>
-                        </div>
-                        {% else %}
-
-                        {% if error %}
-                        <div class="alert alert-danger" role="alert">
-                            {{ error }}
-                        </div>
-                        {% endif %}
-
-                        <form method="post" action="/auth/register" novalidate>
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                            <div class="mb-3">
-                                <label for="reg-display-name" class="form-label">Display name</label>
-                                <input type="text"
-                                       class="form-control"
-                                       id="reg-display-name"
-                                       name="display_name"
-                                       autocomplete="nickname"
-                                       value="{{ values.get('display_name', '') }}"
-                                       placeholder="How you appear to other students">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="reg-email" class="form-label">UWA student email</label>
-                                <input type="email"
-                                       class="form-control {% if errors.get('email') %}is-invalid{% endif %}"
-                                       id="reg-email"
-                                       name="email"
-                                       autocomplete="email"
-                                       value="{{ values.get('email', '') }}"
-                                       placeholder="student.number@student.uwa.edu.au">
-                                <div class="form-text">Must end with <code>@student.uwa.edu.au</code>.</div>
-                                {% if errors.get('email') %}
-                                <div class="invalid-feedback">{{ errors.get('email')[0] }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="reg-password" class="form-label">Password</label>
-                                <input type="password"
-                                       class="form-control {% if errors.get('password') %}is-invalid{% endif %}"
-                                       id="reg-password"
-                                       name="password"
-                                       autocomplete="new-password">
-                                {% if errors.get('password') %}
-                                <div class="invalid-feedback">{{ errors.get('password')[0] }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="reg-confirm" class="form-label">Confirm password</label>
-                                <input type="password"
-                                       class="form-control {% if errors.get('confirm_password') %}is-invalid{% endif %}"
-                                       id="reg-confirm"
-                                       name="confirm_password"
-                                       autocomplete="new-password">
-                                {% if errors.get('confirm_password') %}
-                                <div class="invalid-feedback">{{ errors.get('confirm_password')[0] }}</div>
-                                {% endif %}
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">
-                                Create account
-                            </button>
-                        </form>
-
-                        <p class="small text-muted text-center mt-3 mb-0">
-                            Already registered? <a href="/auth/login">Log in</a>
-                        </p>
-
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6 col-xl-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <h1 class="h4 mb-2 text-center">Create an account</h1>
+                <p class="small text-muted text-center mb-4">Use your <code class="small">@student.uwa.edu.au</code> email.</p>
+                <form id="register-form" method="post" action="" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), autocomplete="username", id="reg-username") }}
+                        <div id="reg-username-err" class="invalid-feedback d-none"></div>
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback d-block">{{ form.username.errors[0] }}</div>
                         {% endif %}
                     </div>
-                </div>
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), autocomplete="email", id="reg-email") }}
+                        <div id="reg-email-err" class="invalid-feedback d-none"></div>
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">{{ form.email.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), autocomplete="new-password", id="reg-password") }}
+                        <div id="reg-password-err" class="invalid-feedback d-none"></div>
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.password.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), autocomplete="new-password", id="reg-confirm") }}
+                        <div id="reg-confirm-err" class="invalid-feedback d-none"></div>
+                        {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.confirm_password.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    {{ form.submit(class="btn btn-primary w-100") }}
+                </form>
+                <p class="small text-muted text-center mt-3 mb-0">
+                    Already registered? <a href="{{ url_for('login') }}">Log in</a>
+                </p>
             </div>
         </div>
     </div>
-</main>
+</div>
+{% endblock %}
 
-<footer class="border-top py-3 mt-auto bg-white">
-    <div class="container small text-muted text-center">CITS5505 · UWA Skill-Swap</div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/register.js') }}"></script>
+{% endblock %}

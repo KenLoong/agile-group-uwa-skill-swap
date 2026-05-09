@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ partner.username }} · UWA Skill-Swap{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        {# ── Chat header ─────────────────────────────────────────────── #}
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <a href="{{ url_for('messages_inbox') }}" class="btn btn-sm btn-outline-secondary px-2" aria-label="Back to inbox">←</a>
+            <span class="avatar-circle"
+                  style="background: hsl({{ (partner.username|length * 47) % 360 }}, 55%, 42%)">
+                {{ partner.username[0]|upper }}
+            </span>
+            <div>
+                <a href="{{ url_for('user_profile', username=partner.username) }}" class="fw-semibold text-reset text-decoration-none">
+                    {{ partner.username }}
+                </a>
+                <p class="small text-muted mb-0">{{ partner.email }}</p>
+            </div>
+        </div>
+
+        {# ── Chat window ──────────────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm d-flex flex-column chat-window">
+            {# Scrollable message area #}
+            <div id="chat-messages" class="chat-body p-3 d-flex flex-column gap-2 overflow-y-auto flex-grow-1">
+                {% if not messages %}
+                    <p class="text-muted text-center small my-auto" id="chat-empty-hint">
+                        No messages yet. Say hello! 👋
+                    </p>
+                {% endif %}
+                {% for m in messages %}
+                    <div class="d-flex {% if m.sender_id == current_user.id %}justify-content-end{% else %}justify-content-start{% endif %}">
+                        <div class="chat-bubble {% if m.sender_id == current_user.id %}chat-bubble-mine{% else %}chat-bubble-theirs{% endif %}">
+                            <p class="mb-1" style="white-space: pre-wrap;">{{ m.content }}</p>
+                            <span class="chat-time">{{ m.timestamp.strftime('%H:%M') }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {# ── Input bar ─────────────────────────────────────────────── #}
+            <div class="border-top p-3 flex-shrink-0">
+                <form id="send-form" autocomplete="off"
+                      data-send-url="{{ url_for('send_message', username=partner.username) }}"
+                      data-poll-url="{{ url_for('poll_messages', username=partner.username) }}"
+                      data-last-id="{{ last_id }}"
+                      data-my-username="{{ current_user.username }}">
+                    <div class="d-flex gap-2 align-items-end">
+                        <textarea id="msg-input"
+                                  class="form-control chat-input"
+                                  rows="1"
+                                  placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
+                                  maxlength="2000"></textarea>
+                        <button type="submit" class="btn btn-primary flex-shrink-0" id="send-btn">
+                            Send
+                        </button>
+                    </div>
+                    <div id="send-error" class="text-danger small mt-1 d-none"></div>
+                </form>
+            </div>
+        </div>
+
+        <p class="small text-muted mt-2 text-center">Messages refresh every 4 seconds automatically.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/conversation.js') }}"></script>
+{% endblock %}

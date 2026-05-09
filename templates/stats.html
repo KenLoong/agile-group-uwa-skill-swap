@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Platform Stats · UWA Skill-Swap{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{# ── Hero ─────────────────────────────────────────────────────────── #}
+<div class="stats-hero px-4 py-5 mb-4 shadow-sm rounded-3 text-center">
+    <h1 class="display-6 fw-bold mb-1">Platform Stats</h1>
+    <p class="mb-0 opacity-75">A live snapshot of the UWA Skill-Swap community</p>
+</div>
+
+{# ── KPI cards ────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4" id="kpi-row">
+    <div class="col-6 col-md-3">
+        <div class="kpi-card card border-0 shadow-sm text-center py-3">
+            <div class="kpi-value" id="kpi-posts">–</div>
+            <div class="kpi-label">Total posts</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card card border-0 shadow-sm text-center py-3">
+            <div class="kpi-value" id="kpi-users">–</div>
+            <div class="kpi-label">Members</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card card border-0 shadow-sm text-center py-3">
+            <div class="kpi-value" id="kpi-comments">–</div>
+            <div class="kpi-label">Comments</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card card border-0 shadow-sm text-center py-3">
+            <div class="kpi-value" id="kpi-tags">–</div>
+            <div class="kpi-label">Unique tags</div>
+        </div>
+    </div>
+</div>
+
+{# ── Row 1: Category bar + Trend line ─────────────────────────────── #}
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold border-0 pt-3 pb-0">
+                Posts by Category
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="chart-categories" aria-label="Posts by category bar chart" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-0 d-flex align-items-center gap-3">
+                <span class="fw-semibold">New Posts Trend</span>
+                <div class="btn-group btn-group-sm ms-auto" role="group" id="trend-range-btns">
+                    <button type="button" class="btn btn-outline-primary trend-range-btn active" data-days="30">30 days</button>
+                    <button type="button" class="btn btn-outline-primary trend-range-btn"         data-days="7">7 days</button>
+                </div>
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="chart-trend" aria-label="New posts trend line chart" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Row 2: Top 5 users horizontal bar ───────────────────────────── #}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold border-0 pt-3 pb-0">
+                Top 5 Most Active Members
+            </div>
+            <div class="card-body chart-container" style="height: 260px;">
+                <canvas id="chart-top-users" aria-label="Top users horizontal bar chart" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Loading / error state #}
+<div id="stats-loading" class="text-center py-5 text-muted">
+    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+    Loading stats…
+</div>
+<div id="stats-error" class="alert alert-danger d-none">Could not load stats. Please try again.</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/stats.js') }}"></script>
+{% endblock %}

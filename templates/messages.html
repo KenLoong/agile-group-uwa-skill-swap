@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Messages · UWA Skill-Swap{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h1 class="h4 mb-4">Messages</h1>
+
+        {% if convos %}
+            <ul class="list-group shadow-sm">
+                {% for c in convos %}
+                    <li class="list-group-item list-group-item-action p-0">
+                        <a href="{{ url_for('conversation', username=c.partner.username) }}"
+                           class="d-flex align-items-center gap-3 p-3 text-decoration-none text-reset">
+
+                            <span class="avatar-circle flex-shrink-0"
+                                  style="background: hsl({{ (c.partner.username|length * 47) % 360 }}, 55%, 42%)">
+                                {{ c.partner.username[0]|upper }}
+                            </span>
+
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex justify-content-between align-items-baseline gap-2">
+                                    <span class="fw-semibold {% if c.unread_count %}text-primary{% endif %}">
+                                        {{ c.partner.username }}
+                                    </span>
+                                    <span class="small text-muted flex-shrink-0">
+                                        {{ c.last_message.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </div>
+                                <p class="small text-muted mb-0 text-truncate">
+                                    {% if c.last_message.sender_id == current_user.id %}
+                                        <span class="text-muted">You: </span>
+                                    {% endif %}
+                                    {{ c.last_message.content | truncate(80) }}
+                                </p>
+                            </div>
+
+                            {% if c.unread_count %}
+                                <span class="badge bg-danger rounded-pill flex-shrink-0">{{ c.unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <p class="mb-1" style="font-size: 2.5rem;">💬</p>
+                <p class="mb-2">No conversations yet.</p>
+                <p class="small">Visit a user's profile and click <strong>Message</strong> to start chatting.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm mt-2">Browse skills</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -7,10 +7,12 @@ Covers:
   - Wanted skills per user (enables bidirectional matching)
   - Comments, likes, bookmarks, interests spread across many combinations
   - Data spread over the last 30 days so trend charts look interesting
+  - Random avatars assigned to users
 """
 
 from datetime import datetime, timedelta
 import random
+import os
 
 from app import app, db
 from models import (

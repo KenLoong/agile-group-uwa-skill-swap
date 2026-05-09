@@ -46,6 +46,8 @@ def upgrade():
         batch_op.add_column(sa.Column('image_filename', sa.String(length=120), nullable=True))
         batch_op.create_foreign_key('fk_post_category_id', 'category', ['category_id'], ['id'])
 
+    op.add_column('user', sa.Column('avatar_filename', sa.String(length=120), nullable=True))
+
     conn = op.get_bind()
     conn.execute(
         sa.text(

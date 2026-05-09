@@ -206,7 +206,7 @@ make seed
 ```
 *(Alternatively, you can run `python seed.py` manually).*
 
-**Demo Accounts:** After seeding, you can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au`. The password for all demo accounts is `demo12345`.
+**Demo Accounts:** After seeding, you can log in using `alice@student.uwa.edu.au`, `bob@student.uwa.edu.au`, or `carol@student.uwa.edu.au`. The password for all demo accounts is `password123`.
 
 ### 4. Launching the Application
 Run the Flask development server using the production application factory (to use the real database, not the in-memory test DB):

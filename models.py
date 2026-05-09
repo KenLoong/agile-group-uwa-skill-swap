@@ -76,6 +76,7 @@ class User(UserMixin, db.Model):
     username      = db.Column(db.String(80),  unique=True, nullable=False)
     email         = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    avatar_filename = db.Column(db.String(120), nullable=True)
 
     posts           = db.relationship('Post',     back_populates='author', lazy=True)
     interests_sent  = db.relationship('Interest', backref='sender',        lazy=True)
@@ -135,6 +136,7 @@ class Notification(db.Model):
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)   # recipient
     actor_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)   # author of comment
     post_id    = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    avatar_filename = db.Column(db.String(120), nullable=True)
     comment_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)
     notif_type = db.Column(db.String(20), nullable=False, default='mention')
     read       = db.Column(db.Boolean,  nullable=False, default=False)

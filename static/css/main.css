@@ -174,6 +174,21 @@ code {
     user-select: none;
 }
 
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
+}
+
 /* ------------------------------------------------------------------
    9. Post detail – Markdown body
    ------------------------------------------------------------------ */
@@ -356,6 +371,13 @@ code {
     width: 4rem;
     height: 4rem;
     font-size: 1.5rem;
+}
+
+/* Navbar avatar */
+.navbar .avatar-circle {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.75rem;
 }
 
 /* ------------------------------------------------------------------

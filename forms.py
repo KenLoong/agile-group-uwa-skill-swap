@@ -13,6 +13,13 @@ class RegistrationForm(FlaskForm):
         'Confirm Password',
         validators=[DataRequired(), EqualTo('password')],
     )
+    avatar = FileField(
+        'Profile avatar',
+        validators=[
+            Optional(),
+            FileAllowed(['jpg', 'jpeg', 'png', 'webp', 'gif'], 'Use PNG, JPG, WebP, or GIF.'),
+        ],
+    )
     submit = SubmitField('Sign Up')
 
     def validate_email(self, email):
@@ -61,6 +68,18 @@ class PostForm(FlaskForm):
     )
     remove_image = BooleanField('Remove current image')
     submit       = SubmitField('Post Skill')
+
+
+class AccountForm(FlaskForm):
+    avatar = FileField(
+        'Profile avatar',
+        validators=[
+            Optional(),
+            FileAllowed(['jpg', 'jpeg', 'png', 'webp', 'gif'], 'Use PNG, JPG, WebP, or GIF.'),
+        ],
+    )
+    remove_avatar = BooleanField('Remove current avatar')
+    submit = SubmitField('Save profile')
 
 
 class CommentForm(FlaskForm):

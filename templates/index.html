@@ -37,10 +37,16 @@
                     {% endif %}
                     <div class="card-body d-flex flex-column py-3">
                         <div class="d-flex align-items-start gap-2 mb-2">
-                            <span class="avatar-circle flex-shrink-0"
-                                  style="background: hsl({{ (post.author.username|length * 47 + loop.index0 * 13) % 360 }}, 55%, 42%); width:2rem;height:2rem;font-size:0.8rem;">
-                                {{ (post.author.username[0] if post.author.username else '?')|upper }}
-                            </span>
+                            {% if post.author.avatar_filename %}
+                                <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar_filename) }}"
+                                     alt="{{ post.author.username }} avatar"
+                                     class="avatar-circle flex-shrink-0" style="width:2rem;height:2rem;" />
+                            {% else %}
+                                <span class="avatar-circle flex-shrink-0"
+                                      style="background: hsl({{ (post.author.username|length * 47 + loop.index0 * 13) % 360 }}, 55%, 42%); width:2rem;height:2rem;font-size:0.8rem;">
+                                    {{ (post.author.username[0] if post.author.username else '?')|upper }}
+                                </span>
+                            {% endif %}
                             <div class="min-w-0">
                                 <span class="badge bg-primary mb-1">{{ post.category.label }}</span>
                                 <h3 class="h6 mb-1"><a href="{{ url_for('post_detail', post_id=post.id) }}" class="text-reset text-decoration-none">{{ post.title }}</a></h3>
@@ -106,10 +112,16 @@
                     {% endif %}
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-start gap-3 mb-2">
-                            <span class="avatar-circle flex-shrink-0"
-                                  style="background: hsl({{ (post.author.username|length * 47 + loop.index0 * 13) % 360 }}, 55%, 42%)">
-                                {{ (post.author.username[0] if post.author.username else '?')|upper }}
-                            </span>
+                            {% if post.author.avatar_filename %}
+                                <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar_filename) }}"
+                                     alt="{{ post.author.username }} avatar"
+                                     class="avatar-circle flex-shrink-0" />
+                            {% else %}
+                                <span class="avatar-circle flex-shrink-0"
+                                      style="background: hsl({{ (post.author.username|length * 47 + loop.index0 * 13) % 360 }}, 55%, 42%)">
+                                    {{ (post.author.username[0] if post.author.username else '?')|upper }}
+                                </span>
+                            {% endif %}
                             <div class="min-w-0">
                                 <span class="badge bg-primary-subtle text-primary-emphasis mb-1">{{ post.category.label }}</span>
                                 <h2 class="h5 card-title text-truncate mb-1">

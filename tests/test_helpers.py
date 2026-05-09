@@ -42,6 +42,7 @@ def configure_app_for_tests():
     )
     UPLOAD_TEST_DIR.mkdir(parents=True, exist_ok=True)
     app.config['UPLOAD_FOLDER'] = str(UPLOAD_TEST_DIR)
+    app.config['AVATAR_UPLOAD_FOLDER'] = str(UPLOAD_TEST_DIR / 'avatars')
     _CONFIGURED = True
 
 

@@ -25,11 +25,22 @@
                     {% endfor %}
                 {% endif %}
             </div>
-            <h1 class="h2 mb-1">{{ post.title }}</h1>
+            <h1 class="h2 mb-2">{{ post.title }}</h1>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                {% if post.author.avatar_filename %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar_filename) }}"
+                         alt="{{ post.author.username }} avatar"
+                         class="avatar-circle flex-shrink-0" />
+                {% else %}
+                    <span class="avatar-circle flex-shrink-0" style="background:hsl({{ (post.author.username|length * 47) % 360 }}, 55%, 42%)">{{ (post.author.username[0] if post.author.username else '?')|upper }}</span>
+                {% endif %}
+                <div class="small">
+                    <div><a href="{{ url_for('user_profile', username=post.author.username) }}" class="text-reset text-decoration-none fw-500">{{ post.author.username }}</a></div>
+                    <div class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
             <p class="text-muted small mb-0">
-                <a href="{{ url_for('user_profile', username=post.author.username) }}">{{ post.author.username }}</a>
-                · {{ post.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                · <span id="interest-count-label">{{ interest_count }}</span> interested
+                <span id="interest-count-label">{{ interest_count }}</span> interested
                 · <span id="comment-count-label">{{ post.comment_count }}</span> comments
                 · <span id="like-count-label">{{ post.like_count }}</span> likes
             </p>
@@ -83,14 +94,25 @@
 <section class="mb-4">
     <h2 class="h5 mb-3">Comments <span class="badge bg-secondary fw-normal" id="comments-section-count">{{ post.comment_count }}</span></h2>
     {% set sorted_comments = post.comments|sort(attribute='timestamp') %}
-    <ul id="comment-list" class="list-group list-group-flush shadow-sm rounded border mb-3{% if not sorted_comments %} d-none{% endif %}">
+    <ul id="comment-list" class="list-unstyled space-y-2 mb-3{% if not sorted_comments %} d-none{% endif %}">
         {% for c in sorted_comments %}
-            <li class="list-group-item py-3">
-                <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
-                    <strong class="small"><a href="{{ url_for('user_profile', username=c.user.username) }}" class="text-reset text-decoration-none">{{ c.user.username }}</a></strong>
-                    <span class="small text-muted">{{ c.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+            <li class="d-flex gap-3 p-3 bg-light rounded">
+                <div class="flex-shrink-0">
+                    {% if c.user.avatar_filename %}
+                        <img src="{{ url_for('static', filename='uploads/avatars/' + c.user.avatar_filename) }}"
+                             alt="{{ c.user.username }} avatar"
+                             class="avatar-circle" />
+                    {% else %}
+                        <span class="avatar-circle" style="background:hsl({{ (c.user.username|length * 47) % 360 }}, 55%, 42%)">{{ (c.user.username[0] if c.user.username else '?')|upper }}</span>
+                    {% endif %}
                 </div>
-                <p class="mb-0 small comment-text" style="white-space: pre-wrap;">{{ c.content | render_mentions | safe }}</p>
+                <div class="flex-grow-1 min-width-0">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                        <strong class="small"><a href="{{ url_for('user_profile', username=c.user.username) }}" class="text-reset text-decoration-none">{{ c.user.username }}</a></strong>
+                        <span class="small text-muted text-nowrap">{{ c.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <p class="mb-0 small comment-text" style="white-space: pre-wrap; word-break: break-word;">{{ c.content | render_mentions | safe }}</p>
+                </div>
             </li>
         {% endfor %}
     </ul>

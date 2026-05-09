@@ -41,3 +41,15 @@ def delete_post_image(upload_folder: str, filename: str | None) -> None:
             os.remove(path)
     except OSError:
         pass
+
+
+def save_avatar_image(upload_file, upload_folder: str) -> str | None:
+    """
+    Save uploaded avatar with a random filename. Returns stored filename or None if no file.
+    Raises ValueError on invalid type or size.
+    """
+    return save_post_image(upload_file, upload_folder)
+
+
+def delete_avatar_image(upload_folder: str, filename: str | None) -> None:
+    delete_post_image(upload_folder, filename)

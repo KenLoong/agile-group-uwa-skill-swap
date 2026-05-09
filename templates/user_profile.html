@@ -11,11 +11,18 @@
 
 {# ── Profile header ────────────────────────────────────────────────── #}
 <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
-    <span class="avatar-circle flex-shrink-0"
-          style="width: 3.5rem; height: 3.5rem; font-size: 1.25rem;
-                 background: hsl({{ (profile_user.username|length * 47) % 360 }}, 55%, 42%)">
-        {{ (profile_user.username[0] if profile_user.username else '?')|upper }}
-    </span>
+    {% if profile_user.avatar_filename %}
+        <img src="{{ url_for('static', filename='uploads/avatars/' + profile_user.avatar_filename) }}"
+             alt="{{ profile_user.username }} avatar"
+             class="avatar-circle flex-shrink-0"
+             style="width: 3.5rem; height: 3.5rem;" />
+    {% else %}
+        <span class="avatar-circle flex-shrink-0"
+              style="width: 3.5rem; height: 3.5rem; font-size: 1.25rem;
+                     background: hsl({{ (profile_user.username|length * 47) % 360 }}, 55%, 42%)">
+            {{ (profile_user.username[0] if profile_user.username else '?')|upper }}
+        </span>
+    {% endif %}
     <div>
         <h1 class="h3 mb-1">{{ profile_user.username }}</h1>
         <p class="text-muted small mb-0">
@@ -46,6 +53,29 @@
                     </a>
                 </div>
             {% endif %}
+        {% else %}
+            {# Owner: Show avatar upload section #}
+            <div class="mt-4 pt-3 border-top">
+                <h6 class="mb-3">Profile picture</h6>
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('account') }}" id="avatar-form">
+                    <div class="d-flex align-items-end gap-3 mb-3">
+                        <div class="flex-grow-1">
+                            <input type="file" name="avatar" class="form-control form-control-sm" 
+                                   accept=".jpg,.jpeg,.png,.webp,.gif" />
+                            <div class="form-text mt-1">PNG, JPG, WebP or GIF. Max 2 MB.</div>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+                    </div>
+                    {% if profile_user.avatar_filename %}
+                        <div>
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" name="remove_avatar" />
+                                <span class="form-check-label">Remove avatar</span>
+                            </label>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
         {% endif %}
     </div>
 </div>

@@ -9,8 +9,8 @@ from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import db, User, Post, Comment, Interest, Category, Bookmark, PostLike, Tag, Notification, Message, post_tags
-from forms import RegistrationForm, LoginForm, PostForm, CommentForm
-from uploads_util import save_post_image, delete_post_image
+from forms import RegistrationForm, LoginForm, PostForm, CommentForm, AccountForm
+from uploads_util import save_post_image, delete_post_image, save_avatar_image, delete_avatar_image
 from md_format import render_post_markdown, markdown_plain_snippet
 
 load_dotenv()
@@ -21,6 +21,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Total request body limit (file uploads)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
+app.config.setdefault('AVATAR_UPLOAD_FOLDER', os.path.join(app.root_path, 'static', 'uploads', 'avatars'))
 
 db.init_app(app)
 csrf = CSRFProtect(app)
@@ -73,6 +74,10 @@ def markdown_snippet_filter(text, max_len=120):
 
 def post_upload_dir():
     return os.path.join(app.root_path, 'static', 'uploads', 'posts')
+
+
+def avatar_upload_dir():
+    return app.config.get('AVATAR_UPLOAD_FOLDER')
 
 
 @login_manager.user_loader
@@ -239,11 +244,39 @@ def register():
     if form.validate_on_submit():
         hashed_pw = generate_password_hash(form.password.data)
         user = User(username=form.username.data, email=form.email.data, password_hash=hashed_pw)
+        if form.avatar.data:
+            try:
+                user.avatar_filename = save_avatar_image(form.avatar.data, avatar_upload_dir())
+            except ValueError as exc:
+                form.avatar.errors.append(str(exc))
+                return render_template('register.html', title='Register', form=form)
         db.session.add(user)
         db.session.commit()
         flash('Account created! You can now log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
+
+
+@app.route('/account', methods=['GET', 'POST'])
+@login_required
+def account():
+    form = AccountForm()
+    if form.validate_on_submit():
+        if form.remove_avatar.data and current_user.avatar_filename:
+            delete_avatar_image(avatar_upload_dir(), current_user.avatar_filename)
+            current_user.avatar_filename = None
+        if form.avatar.data:
+            if current_user.avatar_filename:
+                delete_avatar_image(avatar_upload_dir(), current_user.avatar_filename)
+            try:
+                current_user.avatar_filename = save_avatar_image(form.avatar.data, avatar_upload_dir())
+            except ValueError as exc:
+                form.avatar.errors.append(str(exc))
+                return render_template('account.html', title='Account', form=form)
+        db.session.commit()
+        flash('Profile updated.', 'success')
+        return redirect(url_for('account'))
+    return render_template('account.html', title='Account', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])

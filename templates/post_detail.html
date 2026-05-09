@@ -1,101 +1,192 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ post.title }} · UWA Skill-Swap</title>
-    <meta name="description" content="Skill listing — lifecycle and tags snapshot.">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .navbar-brand { font-weight: 600; letter-spacing: 0.02em; }
-        .post-description { white-space: pre-wrap; word-break: break-word; }
-        .tag-pill { font-size: 0.85rem; }
-    </style>
-</head>
-<body class="bg-light min-vh-100 d-flex flex-column">
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · UWA Skill-Swap{% endblock %}
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-    <div class="container">
-        <a class="navbar-brand" href="{{ url_for('root_index') }}">UWA Skill-Swap</a>
-        <div class="navbar-nav ms-auto gap-3 flex-row align-items-center">
-            <a class="nav-link text-white-50 px-2" href="{{ url_for('posts.list_posts_stub') }}">Posts JSON feed</a>
-            <a class="nav-link text-white-50 px-2" href="{{ url_for('posts.create_skill_post') }}">Create post</a>
+{% block content %}
+<article class="mb-5">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Discover</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ post.title }}</li>
+        </ol>
+    </nav>
+
+    <header class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+        <div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <span class="badge bg-primary">{{ post.category.label }}</span>
+                <span class="badge status-badge status-{{ post.status }}">
+                    {% if post.status == 'open' %}🟢 Open
+                    {% elif post.status == 'matched' %}🤝 Matched
+                    {% else %}⭕ Closed{% endif %}
+                </span>
+                {% if post.tags %}
+                    {% for tag in post.tags %}
+                        <span class="tag-pill">#{{ tag.label }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <h1 class="h2 mb-2">{{ post.title }}</h1>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                {% if post.author.avatar_filename %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + post.author.avatar_filename) }}"
+                         alt="{{ post.author.username }} avatar"
+                         class="avatar-circle flex-shrink-0" />
+                {% else %}
+                    <span class="avatar-circle flex-shrink-0" style="background:hsl({{ (post.author.username|length * 47) % 360 }}, 55%, 42%)">{{ (post.author.username[0] if post.author.username else '?')|upper }}</span>
+                {% endif %}
+                <div class="small">
+                    <div><a href="{{ url_for('user_profile', username=post.author.username) }}" class="text-reset text-decoration-none fw-500">{{ post.author.username }}</a></div>
+                    <div class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+            <p class="text-muted small mb-0">
+                <span id="interest-count-label">{{ interest_count }}</span> interested
+                · <span id="comment-count-label">{{ post.comment_count }}</span> comments
+                · <span id="like-count-label">{{ post.like_count }}</span> likes
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if current_user.is_authenticated and post.author == current_user %}
+                <a href="{{ url_for('update_post', post_id=post.id) }}" class="btn btn-outline-primary">Edit</a>
+                <form method="post" action="{{ url_for('delete_post', post_id=post.id) }}" class="d-inline"
+                      onsubmit="return confirm('Delete this post permanently?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+            {% elif current_user.is_authenticated %}
+                <button type="button" id="interest-btn" class="btn btn-primary"
+                        data-post-id="{{ post.id }}"
+                        data-url="{{ url_for('express_interest', post_id=post.id) }}"
+                        {% if already_interested %}disabled{% endif %}>
+                    {% if already_interested %}Request sent{% else %}I'm interested{% endif %}
+                </button>
+                <button type="button" id="like-btn" class="btn btn-outline-danger"
+                        data-url="{{ url_for('toggle_post_like', post_id=post.id) }}"
+                        data-liked="{{ 'true' if liked else 'false' }}">
+                    {% if liked %}♥ Liked{% else %}♡ Like{% endif %}
+                </button>
+                <button type="button" id="bookmark-btn" class="btn btn-outline-secondary"
+                        data-url="{{ url_for('toggle_bookmark', post_id=post.id) }}"
+                        data-saved="{{ 'true' if is_saved else 'false' }}">
+                    {% if is_saved %}Saved{% else %}Save for later{% endif %}
+                </button>
+            {% else %}
+                <a href="{{ url_for('login', next=request.path) }}" class="btn btn-primary">Log in to show interest</a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if post.image_filename %}
+        <div class="rounded overflow-hidden shadow-sm mb-4" style="max-height: 360px;">
+            <img src="{{ url_for('static', filename='uploads/posts/' + post.image_filename) }}"
+                 class="w-100 h-100 object-fit-cover" alt="" style="object-fit: cover; max-height: 360px;">
+        </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Description</h2>
+            <div class="post-body">{{ post.description | post_markdown | safe }}</div>
         </div>
     </div>
-</nav>
+</article>
 
-<main class="flex-grow-1 py-4">
-    <div class="container">
-        {% with flashes = get_flashed_messages(with_categories=true) %}
-        {% if flashes %}
-        {% for cat, msg in flashes %}
-        <div class="alert alert-{{ cat if cat in ['success','warning','danger','info'] else 'secondary' }} mb-3" role="alert">{{ msg }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+<section class="mb-5">
+    <h2 class="h5 mb-4 d-flex align-items-center gap-2">
+        Comments
+        <span class="badge bg-secondary fw-normal" id="comments-section-count">{{ post.comment_count }}</span>
+    </h2>
 
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('root_index') }}">Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Post</li>
-            </ol>
-        </nav>
-
-        <article class="card shadow-sm mb-4">
-            <div class="card-body p-4 p-md-5">
-                <header class="mb-4">
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                        <span class="badge text-bg-secondary border">{{ category.label }}</span>
-                        <span class="badge rounded-pill {{ badge_class }}" title="Post lifecycle status">{{ badge_label }}</span>
-                    </div>
-                    <h1 class="h2 mb-3">{{ post.title }}</h1>
-                    <p class="text-secondary mb-2 small">
-                        <span class="text-muted">Listed by</span>
-                        <span class="fw-semibold">{{ author_label }}</span>
-                        {% if posted_at_human %}
-                        <span class="text-muted">· {{ posted_at_human }}</span>
-                        {% endif %}
-                    </p>
-                    <div class="d-flex flex-wrap gap-3 small text-secondary mb-3">
-                        <span><strong class="text-body">{{ post.like_count }}</strong> likes</span>
-                        <span><strong class="text-body">{{ post.comment_count }}</strong> comments</span>
-                        <span><a class="link-secondary" href="{{ url_for('posts.post_detail_json', post_id=post.id) }}">Machine-readable JSON</a></span>
-                    </div>
-
-                    {% if tags %}
-                    <div class="mt-3" aria-label="Skill tags">
-                        <span class="visually-hidden">Tags:</span>
-                        {% for tag in tags %}
-                        <span class="badge rounded-pill text-bg-light border tag-pill me-1 mb-1">{{ tag.label }}</span>
-                        {% endfor %}
-                    </div>
+    {% set sorted_comments = post.comments|sort(attribute='timestamp') %}
+    <ul id="comment-list" class="list-unstyled comment-thread mb-4{% if not sorted_comments %} d-none{% endif %}">
+        {% for c in sorted_comments %}
+            <li class="comment-item d-flex gap-3 mb-3">
+                {# ── Avatar column ── #}
+                <div class="comment-avatar-col flex-shrink-0">
+                    {% if c.user.avatar_filename %}
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}">
+                            <img src="{{ url_for('static', filename='uploads/avatars/' + c.user.avatar_filename) }}"
+                                 alt="{{ c.user.username }}"
+                                 class="avatar-circle comment-avatar" />
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}"
+                           class="avatar-circle comment-avatar text-decoration-none"
+                           style="background:hsl({{ (c.user.username|length * 47) % 360 }}, 55%, 42%)">
+                            {{ (c.user.username[0] if c.user.username else '?')|upper }}
+                        </a>
                     {% endif %}
-                </header>
-
-                {% if post.image_filename %}
-                <div class="mb-4 text-center px-1">
-                    <img
-                        src="{{ url_for('static', filename='uploads/posts/' ~ post.image_filename) }}"
-                        alt="{{ post.image_alt or post.title }}"
-                        class="img-fluid rounded border shadow-sm"
-                        style="max-height: 420px; object-fit: contain;"
-                    >
                 </div>
+                {# ── Comment card ── #}
+                <div class="comment-card flex-grow-1">
+                    <div class="comment-card-header d-flex align-items-center gap-2">
+                        <a href="{{ url_for('user_profile', username=c.user.username) }}"
+                           class="comment-username">{{ c.user.username }}</a>
+                        <span class="comment-dot">·</span>
+                        <time class="comment-time" datetime="{{ c.timestamp.isoformat() }}">
+                            {{ c.timestamp.strftime('%b') }} {{ c.timestamp.day }}, {{ c.timestamp.year }}
+                            <span class="d-none d-sm-inline">at {{ c.timestamp.strftime('%H:%M') }}</span>
+                        </time>
+                    </div>
+                    <div class="comment-card-body">
+                        <p class="mb-0 comment-text">{{ c.content | render_mentions | safe }}</p>
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+    <p id="comment-empty-hint" class="text-muted small {% if sorted_comments %}d-none{% endif %}">
+        No comments yet — be the first to reply below.
+    </p>
+
+    {# ── Write a comment ── #}
+    {% if current_user.is_authenticated %}
+        <div class="comment-compose d-flex gap-3 align-items-start mt-2"
+             id="comment-form-meta"
+             data-username="{{ current_user.username }}"
+             data-profile-url="{{ url_for('user_profile', username=current_user.username) }}"
+             data-avatar-filename="{{ current_user.avatar_filename or '' }}"
+             data-avatar-url="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_filename) if current_user.avatar_filename else '' }}"
+             data-hue="{{ (current_user.username|length * 47) % 360 }}">
+            <div class="comment-avatar-col flex-shrink-0">
+                {% if current_user.avatar_filename %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_filename) }}"
+                         alt="You"
+                         class="avatar-circle comment-avatar" />
+                {% else %}
+                    <span class="avatar-circle comment-avatar"
+                          style="background:hsl({{ (current_user.username|length * 47) % 360 }}, 55%, 42%)">
+                        {{ (current_user.username[0] if current_user.username else '?')|upper }}
+                    </span>
                 {% endif %}
-
-                <hr class="my-4">
-
-                <section class="post-description text-secondary lh-lg">{{ post.description }}</section>
             </div>
-        </article>
-    </div>
-</main>
+            <div class="comment-card flex-grow-1">
+                <form id="comment-form" method="post"
+                      action="{{ url_for('post_comment', post_id=post.id) }}" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="comment-card-body pb-2">
+                        {{ form.content(class="form-control border-0 shadow-none px-0" + (" is-invalid" if form.content.errors else ""),
+                                        rows=3, id="comment-content",
+                                        placeholder="Leave a comment… type @ to mention someone") }}
+                        <div id="comment-client-error" class="invalid-feedback d-none"></div>
+                        {% if form.content.errors %}
+                            <div class="invalid-feedback d-block">{{ form.content.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="comment-card-footer d-flex justify-content-end">
+                        {{ form.submit(class="btn btn-primary btn-sm px-4", id="comment-submit") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <p class="small text-muted mt-3 mb-0">
+            <a href="{{ url_for('login', next=request.path) }}">Log in</a> to leave a comment.
+        </p>
+    {% endif %}
+</section>
+{% endblock %}
 
-<footer class="border-top py-3 mt-auto bg-white">
-    <div class="container small text-muted text-center">UWA Skill-Swap · Post detail (Posts &amp; Discovery)</div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/post_detail.js') }}"></script>
+{% endblock %}

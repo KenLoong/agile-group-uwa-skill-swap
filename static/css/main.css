@@ -1,0 +1,927 @@
+/* =====================================================================
+   UWA Skill-Swap – main.css
+   Custom styles on top of Bootstrap 5. All site-specific selectors and
+   component overrides live here so the Jinja templates stay clean.
+   ===================================================================== */
+
+/* ------------------------------------------------------------------
+   1. Design tokens (CSS custom properties)
+   ------------------------------------------------------------------ */
+:root {
+    --uwa-navy:        #003087;
+    --uwa-navy-dark:   #001f5c;
+    --uwa-teal:        #0b4f6c;
+    --card-radius:     0.625rem;
+    --transition-fast: 0.18s ease;
+}
+
+/* ------------------------------------------------------------------
+   2. Base / typography
+   ------------------------------------------------------------------ */
+body {
+    font-size: 0.9375rem;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code {
+    font-size: 0.875em;
+    color: var(--uwa-navy);
+}
+
+/* ------------------------------------------------------------------
+   3. Utilities
+   ------------------------------------------------------------------ */
+.min-w-0 {
+    min-width: 0;
+}
+
+.object-fit-cover {
+    object-fit: cover;
+}
+
+.transition-opacity {
+    transition: opacity var(--transition-fast);
+}
+
+/* ------------------------------------------------------------------
+   4. Navbar
+   ------------------------------------------------------------------ */
+.navbar-brand {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    font-size: 1.1rem;
+}
+
+.navbar .nav-link {
+    font-size: 0.9rem;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    transition: color var(--transition-fast);
+}
+
+.navbar .nav-link:hover {
+    color: #fff !important;
+}
+
+/* ------------------------------------------------------------------
+   5. Hero banner
+   ------------------------------------------------------------------ */
+.hero-skill-swap {
+    background: linear-gradient(
+        135deg,
+        var(--uwa-navy) 0%,
+        var(--uwa-navy-dark) 55%,
+        var(--uwa-teal) 100%
+    );
+    color: #fff;
+    border-radius: 0 0 1.25rem 1.25rem;
+}
+
+.hero-skill-swap h1 {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.hero-skill-swap p {
+    font-size: 1.05rem;
+}
+
+.hero-skill-swap .form-control {
+    border: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.hero-skill-swap .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+/* ------------------------------------------------------------------
+   6. Category pills (filter bar)
+   ------------------------------------------------------------------ */
+.category-pill {
+    border-radius: 2rem;
+    font-size: 0.8125rem;
+    transition: background-color var(--transition-fast),
+                color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.category-pill:hover {
+    background-color: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+}
+
+.category-pill.active {
+    background-color: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 2px #0d6efd inset;
+}
+
+/* ------------------------------------------------------------------
+   7. Post cards
+   ------------------------------------------------------------------ */
+.post-card {
+    border-radius: var(--card-radius);
+    transition: transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+.post-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.post-card .card-title a {
+    color: inherit;
+}
+
+.post-card .card-title a:hover {
+    color: var(--uwa-navy);
+    text-decoration: none;
+}
+
+.post-card .card-body {
+    padding: 1rem;
+}
+
+/* ------------------------------------------------------------------
+   8. Avatar circle
+   ------------------------------------------------------------------ */
+.avatar-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #fff;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
+}
+
+/* ------------------------------------------------------------------
+   9. Post detail – Markdown body
+   ------------------------------------------------------------------ */
+.post-body {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    line-height: 1.72;
+}
+
+.post-body h1 {
+    font-size: 1.35rem;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.post-body h2 {
+    font-size: 1.2rem;
+    margin-top: 1.1rem;
+    margin-bottom: 0.45rem;
+}
+
+.post-body h3 {
+    font-size: 1.05rem;
+    margin-top: 0.9rem;
+    margin-bottom: 0.4rem;
+}
+
+.post-body p:last-child {
+    margin-bottom: 0;
+}
+
+.post-body a {
+    color: var(--uwa-navy);
+    text-decoration: underline;
+}
+
+.post-body a:hover {
+    color: var(--uwa-teal);
+}
+
+.post-body pre {
+    background: #f8f9fa;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    overflow-x: auto;
+    border: 1px solid #e9ecef;
+}
+
+.post-body code {
+    background: #f0f4ff;
+    padding: 0.1em 0.35em;
+    border-radius: 0.2em;
+    font-size: 0.875em;
+    color: var(--uwa-navy);
+}
+
+.post-body pre code {
+    background: none;
+    padding: 0;
+}
+
+.post-body blockquote {
+    border-left: 3px solid #dee2e6;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.post-body ul,
+.post-body ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.post-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.post-body table th,
+.post-body table td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.post-body table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.post-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+}
+
+/* ------------------------------------------------------------------
+   10. Post cover image
+   ------------------------------------------------------------------ */
+.post-cover {
+    max-height: 360px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: var(--card-radius);
+}
+
+/* ------------------------------------------------------------------
+   11. Comment thread (GitHub / Discourse-inspired)
+   ------------------------------------------------------------------ */
+
+/* Vertical connector line between avatar and the next comment */
+.comment-thread {
+    position: relative;
+}
+
+.comment-avatar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.comment-avatar {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    font-size: 1rem;
+    border: 2px solid #e6eaf0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: box-shadow var(--transition-fast);
+}
+
+.comment-avatar:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* The card itself */
+.comment-card {
+    border: 1px solid #d0d7de;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #ffffff;
+    transition: box-shadow var(--transition-fast);
+}
+
+.comment-card:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
+}
+
+/* Grey header bar – username + timestamp */
+.comment-card-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    flex-wrap: wrap;
+}
+
+.comment-username {
+    font-weight: 600;
+    color: #1a1f36;
+    text-decoration: none;
+}
+
+.comment-username:hover {
+    color: var(--uwa-navy);
+    text-decoration: underline;
+}
+
+.comment-dot {
+    color: #9aa5b4;
+    font-size: 0.7rem;
+}
+
+.comment-time {
+    color: #6e7781;
+    font-size: 0.8rem;
+}
+
+/* Comment body */
+.comment-card-body {
+    padding: 0.75rem 0.9rem;
+}
+
+/* Footer (used in compose form) */
+.comment-card-footer {
+    padding: 0.5rem 0.9rem;
+    background: #f6f8fa;
+    border-top: 1px solid #d0d7de;
+}
+
+/* Content text */
+.comment-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #24292f;
+}
+
+/* Compose form – textarea blends into card body */
+.comment-compose .form-control::placeholder {
+    color: #9aa5b4;
+}
+
+.comment-compose .form-control:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------------
+   12. Auth forms (login / register pages)
+   ------------------------------------------------------------------ */
+.auth-card {
+    border-radius: var(--card-radius);
+}
+
+.auth-card .card-body {
+    padding: 2rem 2.5rem;
+}
+
+@media (max-width: 576px) {
+    .auth-card .card-body {
+        padding: 1.5rem 1.25rem;
+    }
+}
+
+/* ------------------------------------------------------------------
+   13. Dashboard tabs
+   ------------------------------------------------------------------ */
+.nav-tabs .nav-link {
+    color: #495057;
+    border-radius: 0.375rem 0.375rem 0 0;
+    font-size: 0.9rem;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--uwa-navy);
+    font-weight: 600;
+}
+
+.tab-content .tab-pane table td,
+.tab-content .tab-pane table th {
+    vertical-align: middle;
+}
+
+/* ------------------------------------------------------------------
+   14. User profile page
+   ------------------------------------------------------------------ */
+.user-profile-header {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.user-profile-avatar {
+    width: 4rem;
+    height: 4rem;
+    font-size: 1.5rem;
+}
+
+/* Navbar avatar */
+.navbar .avatar-circle {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.75rem;
+}
+
+/* ------------------------------------------------------------------
+   15. Interaction buttons (detail page)
+   ------------------------------------------------------------------ */
+#interest-btn {
+    min-width: 8rem;
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+#interest-btn:disabled {
+    cursor: default;
+    opacity: 0.75;
+}
+
+#like-btn {
+    min-width: 5.5rem;
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+#like-btn[data-liked="true"] {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+#bookmark-btn {
+    min-width: 8rem;
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+/* ------------------------------------------------------------------
+   16. Footer
+   ------------------------------------------------------------------ */
+footer {
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+}
+
+footer a {
+    color: #6c757d;
+}
+
+footer a:hover {
+    color: var(--uwa-navy);
+}
+
+/* ------------------------------------------------------------------
+   17. Responsive adjustments
+   ------------------------------------------------------------------ */
+@media (max-width: 576px) {
+    .hero-skill-swap {
+        border-radius: 0;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .post-card:hover {
+        transform: none;
+    }
+
+    .avatar-circle {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-skill-swap h1 {
+        font-size: 1.4rem;
+    }
+}
+
+/* ------------------------------------------------------------------
+   18. Post status badges
+   ------------------------------------------------------------------ */
+.status-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.25em 0.55em;
+    border-radius: 0.375rem;
+}
+
+.status-badge.status-open {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.status-matched {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.status-closed {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+/* ------------------------------------------------------------------
+   19. Tag pills
+   ------------------------------------------------------------------ */
+.tag-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.2em 0.55em;
+    border-radius: 999px;
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tag-pill:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+    text-decoration: none;
+}
+
+/* Active tag filter button in the tag-bar on the index page */
+#tag-bar .tag-filter-btn.active {
+    background-color: var(--uwa-navy);
+    color: #fff;
+    border-color: var(--uwa-navy);
+}
+
+#tag-bar .tag-filter-btn {
+    border-radius: 999px;
+    font-size: 0.75rem;
+}
+
+/* Removable tag pill (in the create-post form) */
+.tag-pill-removable {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+
+.tag-remove-btn {
+    width: 0.85em;
+    height: 0.85em;
+    filter: brightness(0.4);
+    flex-shrink: 0;
+}
+
+/* Tag input container */
+.tag-input-wrap {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background: #fff;
+    cursor: text;
+}
+
+.tag-input-wrap:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.tag-input-wrap #tag-text-input {
+    border: none;
+    outline: none;
+    box-shadow: none;
+    padding: 0.2rem 0.25rem;
+}
+
+.tag-input-wrap #tag-text-input:focus {
+    border: none;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------------
+   20. Match Found banner + match cards (dashboard)
+   ------------------------------------------------------------------ */
+
+#match-banner {
+    animation: pulse-green 2s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0   rgba(25, 135, 84, 0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(25, 135, 84, 0);   }
+}
+
+
+.match-card {
+    border-left: 4px solid #10b981 !important;
+    transition: box-shadow var(--transition-fast);
+}
+
+.match-card:hover {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Wanted-skill toggle buttons */
+#wanted-cat-bar .wanted-cat-btn {
+    border-radius: 999px;
+    font-size: 0.8rem;
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Status select in My Skills table */
+.post-status-select {
+    font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------
+   21. Private messaging – chat UI
+   ------------------------------------------------------------------ */
+
+/* Outer card acts as the viewport */
+.chat-window {
+    height: calc(100vh - 220px);
+    min-height: 420px;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+}
+
+/* Scrollable message area */
+.chat-body {
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    background: #f8fafc;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+    max-width: 72%;
+    padding: 0.5rem 0.875rem 0.35rem;
+    border-radius: 1.25rem;
+    word-break: break-word;
+    line-height: 1.45;
+}
+
+.chat-bubble-mine {
+    background: var(--uwa-navy);
+    color: #fff;
+    border-bottom-right-radius: 0.3rem;
+}
+
+.chat-bubble-theirs {
+    background: #fff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 0.3rem;
+}
+
+/* Sender name (for theirs only) */
+.chat-sender {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--uwa-teal);
+    margin-bottom: 0.15rem;
+}
+
+/* Timestamp inside bubble */
+.chat-time {
+    display: block;
+    font-size: 0.65rem;
+    opacity: 0.65;
+    text-align: right;
+    margin-top: 0.15rem;
+}
+
+/* Auto-grow textarea */
+.chat-input {
+    resize: none;
+    overflow-y: hidden;
+    min-height: 2.4rem;
+    max-height: 10rem;
+    border-radius: 1.25rem;
+    padding: 0.5rem 1rem;
+    line-height: 1.4;
+}
+
+/* Inbox conversation list hover */
+.list-group-item-action:hover {
+    background-color: #f0f6ff;
+}
+
+/* ------------------------------------------------------------------
+   22. Markdown editor – Write / Preview
+   ------------------------------------------------------------------ */
+
+/* Preview pane matches the textarea height */
+.md-preview-box {
+    min-height: 22rem;
+    background: #fff;
+    overflow-y: auto;
+}
+
+/* Slight tint to distinguish preview from write mode */
+#md-preview-btn.active {
+    background-color: var(--uwa-navy);
+    border-color: var(--uwa-navy);
+    color: #fff;
+}
+
+#md-write-btn.active {
+    background-color: var(--uwa-navy);
+    border-color: var(--uwa-navy);
+    color: #fff;
+}
+
+/* Monospace font for the write textarea */
+.font-monospace {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------
+   22. @mention autocomplete dropdown
+   ------------------------------------------------------------------ */
+
+/* Floating dropdown container */
+.mention-dropdown {
+    font-size: 0.875rem;
+}
+
+/* Each user row */
+.mention-item {
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+    line-height: 1.3;
+}
+
+.mention-item:hover,
+.mention-item:focus {
+    background-color: #f0f4ff !important;
+    outline: none;
+}
+
+/* Mini avatar circle inside the dropdown */
+.mention-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* @username link inside rendered comments */
+.mention-link {
+    color: var(--uwa-navy);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.mention-link:hover {
+    text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------
+   22. Notification red dot (navbar)
+   ------------------------------------------------------------------ */
+
+.notif-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #ef4444;
+    border-radius: 50%;
+    position: absolute;
+    top: 0.35rem;
+    right: -0.1rem;
+    border: 2px solid #212529; /* matches navbar-dark bg */
+    animation: notif-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+    0%, 100% { transform: scale(1);   opacity: 1;   }
+    50%       { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* ------------------------------------------------------------------
+   23. Notifications tab (dashboard)
+   ------------------------------------------------------------------ */
+
+/* Unread row highlight */
+.notif-unread {
+    background-color: #eff6ff;
+    border-left: 3px solid var(--uwa-navy);
+}
+
+/* Small dot beside unread items */
+.notif-unread-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #ef4444;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.3rem;
+}
+
+/* Quoted comment excerpt */
+.notif-quote {
+    border-left: 3px solid #d1d5db;
+    padding-left: 0.625rem;
+    font-style: italic;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* ------------------------------------------------------------------
+   24. Stats page
+   ------------------------------------------------------------------ */
+.stats-hero {
+    background: linear-gradient(135deg, var(--uwa-navy) 0%, var(--uwa-teal) 100%);
+    color: #fff;
+}
+
+.kpi-card {
+    border-radius: var(--card-radius);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.kpi-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--uwa-navy);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Chart wrapper – Chart.js needs explicit height on the container */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* Responsive: taller containers on small screens for readability */
+@media (max-width: 576px) {
+    .chart-container {
+        height: 240px;
+    }
+
+    .kpi-value {
+        font-size: 1.75rem;
+    }
+}

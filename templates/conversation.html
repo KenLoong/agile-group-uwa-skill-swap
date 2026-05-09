@@ -36,7 +36,8 @@
                     </p>
                 {% endif %}
                 {% for m in messages %}
-                    <div class="d-flex {% if m.sender_id == current_user.id %}justify-content-end{% else %}justify-content-start{% endif %}">
+                    <div class="d-flex {% if m.sender_id == current_user.id %}justify-content-end{% else %}justify-content-start{% endif %}"
+                        data-msg-id="{{ m.id }}">
                         <div class="chat-bubble {% if m.sender_id == current_user.id %}chat-bubble-mine{% else %}chat-bubble-theirs{% endif %}">
                             <p class="mb-1" style="white-space: pre-wrap;">{{ m.content }}</p>
                             <span class="chat-time">{{ m.timestamp.strftime('%H:%M') }}</span>
@@ -51,7 +52,8 @@
                       data-send-url="{{ url_for('send_message', username=partner.username) }}"
                       data-poll-url="{{ url_for('poll_messages', username=partner.username) }}"
                       data-last-id="{{ last_id }}"
-                      data-my-username="{{ current_user.username }}">
+                      data-my-username="{{ current_user.username }}"
+                      data-partner-username="{{ partner.username }}">
                     <div class="d-flex gap-2 align-items-end">
                         <textarea id="msg-input"
                                   class="form-control chat-input"
@@ -67,11 +69,14 @@
             </div>
         </div>
 
-        <p class="small text-muted mt-2 text-center">Messages refresh every 4 seconds automatically.</p>
+        <p class="small text-muted mt-2 text-center">
+            Messages update in real time when WebSocket is available. Polling remains as fallback.
+        </p>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='js/conversation.js') }}"></script>
 {% endblock %}

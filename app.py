@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+from flask_socketio import SocketIO, emit, join_room
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,6 +28,12 @@ db.init_app(app)
 csrf = CSRFProtect(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
+socketio = SocketIO(
+    app,
+    async_mode='threading',
+    logger=False,
+    engineio_logger=False,
+)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
@@ -868,6 +875,236 @@ def api_dashboard_charts():
 # ------------------------------------------------------------------
 # 8. Private messaging
 # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# 8a. Realtime messaging helpers
+# ------------------------------------------------------------------
+
+MESSAGE_SOCKET_NAMESPACE = '/messages'
+
+_socket_message_users = {}
+
+def _coerce_socket_user_id(value):
+    """Convert a socket auth value into a positive integer user id."""
+    if isinstance(value, int) and value > 0:
+        return value
+
+    if isinstance(value, str) and value.strip().isdigit():
+        out = int(value.strip())
+        return out if out > 0 else None
+
+    return None
+
+
+def _socket_user_from_connect(auth=None):
+    """Resolve the user for a Socket.IO connection.
+
+    Browser clients use Flask-Login session cookies.
+    Unit tests can pass auth={"user_id": ...} to avoid session ambiguity.
+    """
+    if current_user.is_authenticated:
+        return current_user
+
+    if isinstance(auth, dict):
+        user_id = _coerce_socket_user_id(auth.get('user_id'))
+        if user_id is not None:
+            return db.session.get(User, user_id)
+
+    return None
+
+def _conversation_room(user_a_id, user_b_id):
+    """Stable room name for a two-person conversation."""
+    low, high = sorted([int(user_a_id), int(user_b_id)])
+    return f'conversation:{low}:{high}'
+
+
+def _message_to_socket_payload(msg, viewer_id=None):
+    """Convert a Message row into a Socket.IO/browser payload."""
+    return {
+        'ok': True,
+        'id': msg.id,
+        'sender_id': msg.sender_id,
+        'recipient_id': msg.recipient_id,
+        'sender': msg.sender.username,
+        'recipient': msg.recipient.username,
+        'content': msg.content,
+        'timestamp': msg.timestamp.strftime('%H:%M'),
+        'is_mine': bool(viewer_id and msg.sender_id == int(viewer_id)),
+    }
+
+
+def _socket_error(message, status='error', code=400):
+    payload = {
+        'ok': False,
+        'status': status,
+        'code': code,
+        'message': message,
+    }
+    emit('messages:error', payload, namespace=MESSAGE_SOCKET_NAMESPACE)
+    return payload
+
+def _current_socket_user():
+    """Return the user bound to this Socket.IO connection."""
+    user_id = _socket_message_users.get(request.sid)
+
+    if user_id is None and current_user.is_authenticated:
+        user_id = current_user.id
+        _socket_message_users[request.sid] = user_id
+
+    if user_id is None:
+        return None
+
+    return db.session.get(User, int(user_id))
+
+@socketio.on('connect', namespace=MESSAGE_SOCKET_NAMESPACE)
+def socket_messages_connect(auth=None):
+    """Allow only authenticated users to connect to message sockets."""
+    user = _socket_user_from_connect(auth)
+
+    if user is None:
+        return False
+
+    _socket_message_users[request.sid] = user.id
+
+    emit(
+        'messages:ready',
+        {
+            'ok': True,
+            'user_id': user.id,
+            'username': user.username,
+        },
+        namespace=MESSAGE_SOCKET_NAMESPACE,
+    )
+
+
+@socketio.on('disconnect', namespace=MESSAGE_SOCKET_NAMESPACE)
+def socket_messages_disconnect():
+    """Forget socket identity when the client disconnects."""
+    _socket_message_users.pop(request.sid, None)
+
+
+@socketio.on('messages:join', namespace=MESSAGE_SOCKET_NAMESPACE)
+def socket_messages_join(data=None):
+    """Join the current user to a private conversation room."""
+    user = _current_socket_user()
+
+    if user is None:
+        return _socket_error(
+            'Authentication required.',
+            status='unauthorized',
+            code=401,
+        )
+
+    data = data or {}
+    partner_username = (data.get('username') or '').strip()
+
+    if not partner_username:
+        return _socket_error(
+            'Conversation partner is required.',
+            status='validation_error',
+        )
+
+    partner = User.query.filter_by(username=partner_username).first()
+
+    if not partner:
+        return _socket_error(
+            'Conversation partner not found.',
+            status='not_found',
+            code=404,
+        )
+
+    if partner.id == user.id:
+        return _socket_error(
+            'Cannot join a conversation with yourself.',
+            status='validation_error',
+        )
+
+    room = _conversation_room(user.id, partner.id)
+    join_room(room)
+
+    emit(
+        'messages:joined',
+        {
+            'ok': True,
+            'room': room,
+            'partner': partner.username,
+        },
+        namespace=MESSAGE_SOCKET_NAMESPACE,
+    )
+
+
+@socketio.on('messages:send', namespace=MESSAGE_SOCKET_NAMESPACE)
+def socket_messages_send(data=None):
+    """Create and broadcast a private message through Socket.IO."""
+    user = _current_socket_user()
+
+    if user is None:
+        return _socket_error(
+            'Authentication required.',
+            status='unauthorized',
+            code=401,
+        )
+
+    data = data or {}
+    partner_username = (data.get('username') or '').strip()
+    content = (data.get('content') or '').strip()
+
+    if not partner_username:
+        return _socket_error(
+            'Conversation partner is required.',
+            status='validation_error',
+        )
+
+    partner = User.query.filter_by(username=partner_username).first()
+
+    if not partner:
+        return _socket_error(
+            'Conversation partner not found.',
+            status='not_found',
+            code=404,
+        )
+
+    if partner.id == user.id:
+        return _socket_error(
+            'Cannot message yourself.',
+            status='validation_error',
+        )
+
+    if not content:
+        return _socket_error(
+            'Message cannot be empty.',
+            status='validation_error',
+        )
+
+    if len(content) > 2000:
+        return _socket_error(
+            'Message too long (max 2000 chars).',
+            status='validation_error',
+        )
+
+    msg = Message(
+        sender_id=user.id,
+        recipient_id=partner.id,
+        content=content,
+    )
+    db.session.add(msg)
+    db.session.commit()
+
+    room = _conversation_room(user.id, partner.id)
+    payload = _message_to_socket_payload(msg)
+
+    emit(
+        'messages:new',
+        payload,
+        room=room,
+        namespace=MESSAGE_SOCKET_NAMESPACE,
+        include_self=True,
+    )
+
+    return {
+        'ok': True,
+        'message': payload,
+    }
+
 
 def _inbox_conversations(user):
     """
@@ -955,10 +1192,20 @@ def send_message(username):
     msg = Message(sender_id=current_user.id, recipient_id=partner.id, content=content)
     db.session.add(msg)
     db.session.commit()
+
+    room = _conversation_room(current_user.id, partner.id)
+    socketio.emit(
+        'messages:new',
+        _message_to_socket_payload(msg),
+        room=room,
+        namespace=MESSAGE_SOCKET_NAMESPACE,
+    )
+
     return jsonify({
         'ok':        True,
         'id':        msg.id,
         'content':   msg.content,
+        'sender':    current_user.username,
         'timestamp': msg.timestamp.strftime('%H:%M'),
         'is_mine':   True,
     })
@@ -1015,4 +1262,8 @@ def internal_server_error(e):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(
+        app,
+        debug=True,
+        allow_unsafe_werkzeug=True,
+    )

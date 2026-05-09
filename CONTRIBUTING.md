@@ -20,6 +20,10 @@ Thank you for helping with this course project. This file is a lightweight guide
 * Write commit messages in the imperative (*Add*, *Fix*, *Document*), one concern per commit when practical.
 * Keep unrelated refactors out of documentation-only pull requests unless your tutor asked for a mixed submission.
 
+## Releases and Changelog
+
+If you are merging a completed milestone or sprint, you must follow the [Milestone Release Policy](docs/RELEASE_POLICY.md). This outlines how to bump the version, tag releases, and update the changelog using the provided template.
+
 ## Pull request checklist (suggested)
 
 * [ ] `README` architecture section still accurate if you touched routes, models, or client entry points.  

@@ -46,7 +46,7 @@ class TestAuthPages(unittest.TestCase):
             user = User(
                 email="browser@student.uwa.edu.au",
                 username="browser",
-                password_hash=generate_password_hash("password123"),
+                password_hash=generate_password_hash("password123", method="pbkdf2:sha256"),
                 email_confirmed=True,
             )
             db.session.add(user)

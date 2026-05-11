@@ -29,7 +29,7 @@ class TestAuthLoginVerificationGate(unittest.TestCase):
             user = User(
                 email=email,
                 username=username,
-                password_hash=generate_password_hash(password),
+                password_hash=generate_password_hash(password, method="pbkdf2:sha256"),
                 email_confirmed=confirmed,
             )
             db.session.add(user)

@@ -289,15 +289,15 @@ def login_submit():
             401,
         )
 
-    return (
-        jsonify(
-            {
-                "ok": False,
-                "message": "Invalid email or password.",
-            }
-        ),
-        401,
-    )
+      return (
+          jsonify(
+              {
+                  "ok": False,
+                  "message": "Invalid email or password.",
+              }
+          ),
+          401,
+      )
 
     if _login_requires_verified_email() and not bool(user.email_confirmed):
         _reset_failed_login_attempts(clean["email"])
@@ -419,7 +419,7 @@ def register_submit():
     user = User(
         email=clean["email"],
         username=clean["username"],
-        password_hash=generate_password_hash(clean["password"]),
+        password_hash=generate_password_hash(clean["password"], method="pbkdf2:sha256"),
         email_confirmed=False,
     )
     db.session.add(user)

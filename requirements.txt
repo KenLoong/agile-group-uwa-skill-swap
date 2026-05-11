@@ -9,3 +9,5 @@ python-dotenv>=1.0
 markdown>=3.5
 bleach>=6.0
 selenium>=4.0
+flask-socketio>=5.3
+simple-websocket>=1.0

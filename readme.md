@@ -1,8 +1,6 @@
 # 🎓 UWA Skill-Swap
 ### *Connect. Exchange. Excel.*
 
-> **Contributing:** see [`CONTRIBUTING.md`](CONTRIBUTING.md) — it links to the [system architecture](#system-architecture) diagram below for onboarding.
-
 **UWA Skill-Swap** is a web-based platform designed specifically for University of Western Australia students to exchange knowledge and skills. Whether you are a coding pro looking to learn guitar, or a linguist wanting to understand data science, this platform facilitates peer-to-peer learning through a persistent, user-friendly client-server application.
 
 ---
@@ -21,7 +19,7 @@ In a university environment, students possess diverse talents beyond their prima
 *   **Dynamic Discovery:** A responsive homepage featuring **AJAX-powered filtering** to browse skills by category (e.g., Coding, Languages, Music) without page reloads.
 *   **The "Interest" System:** A unique interaction module where users can express interest in a skill. The owner is then notified via their dashboard with the requester's contact details.
 *   **User Profiles & Avatars:** Each user has a public profile page where they can upload or change their profile picture, set "want to learn" categories for bidirectional skill matching, and view their own posts.
-*   **Messaging:** Private one-to-one conversations between users with real-time polling and unread-message badges.
+*   **Messaging:** Private one-to-one conversations between users using Flask-SocketIO for real-time WebSocket-style updates, with AJAX polling retained as a fallback and unread-message badges shown in the UI.
 *   **Engagement:** A clean, intuitive UI built with **Bootstrap 5** focusing on accessibility and ease of use.
 
 ---
@@ -31,142 +29,88 @@ In a university environment, students possess diverse talents beyond their prima
 | Layer | Technology |
 | :--- | :--- |
 | **Backend** | Python 3.10+ / Flask |
-| **Database** | SQLite + SQLAlchemy ORM + Flask-Migrate (Alembic) |
-| **Frontend** | HTML5, Bootstrap 5.3, custom CSS (`static/css/main.css`) |
-| **Interactivity** | jQuery + AJAX (filtering, CSRF, comments, messaging) |
-| **Auth & Forms** | Flask-Login, Flask-WTF (CSRF protection) |
+| **Database** | SQLite + SQLAlchemy ORM + Flask-Migrate / Alembic |
+| **Frontend** | Jinja templates, HTML5, Bootstrap 5.3, custom CSS (`static/css/main.css`) |
+| **Client-side interactivity** | jQuery, AJAX, custom JavaScript |
+| **Realtime messaging** | Flask-SocketIO + Socket.IO client |
+| **Auth & Forms** | Flask-Login, Flask-WTF, CSRF protection, Werkzeug password hashing |
+| **Content safety** | Markdown rendering with sanitisation via Markdown + Bleach |
+| **Testing** | Python `unittest`, Flask test client, Socket.IO test client, Selenium |
 | **Version Control** | Git / GitHub |
 
 ---
 
 ## System architecture
 
-This section is the canonical place to understand how the **client**, the **Flask** application, and **SQLAlchemy** cooperate at runtime. New contributors should read it before opening pull requests; the [contribution guide](CONTRIBUTING.md) also points here.
+This project uses a single Flask application entry point in `app.py`.
 
-The stack follows a classic three-layer shape on the server: HTTP enters Flask view functions, which delegate persistence to the ORM. The client stays thin: HTML pages plus JavaScript that issues asynchronous requests so list filtering and “interest” actions can feel responsive without full page reloads.
+The main runtime structure is:
 
-### High-level flow (diagram)
-
-The diagram below is intentionally explicit about the boundaries between the browser, Flask’s request/response cycle, the SQLAlchemy session, and the SQLite file. It is a teaching aid for the unit learning outcomes and for sprint planning when we change routes or models.
-
-```mermaid
-flowchart TB
-  subgraph client_layer["Client (browser)"]
-    direction TB
-    P["Static pages (HTML)"]
-    T["Bootstrap 5 + main.css"]
-    J["jQuery + AJAX calls"]
-  end
-
-  subgraph flask_layer["Flask application"]
-    direction TB
-    W["Werkzeug / routing"]
-    V["View functions (controllers)"]
-    A["Form validation & business rules"]
-    SE["Flask session / cookies"]
-  end
-
-  subgraph orm_layer["SQLAlchemy ORM"]
-    direction TB
-    MD["Model classes (Python)"]
-    SM["Session & Unit of Work"]
-    QY["Query API"]
-  end
-
-  subgraph storage["Persistence"]
-    DB[("SQLite database file")]
-  end
-
-  P --> W
-  T --> P
-  J -->|HTTP JSON or form posts| W
-  W --> V
-  V --> A
-  V --> SE
-  V --> MD
-  MD --> SM
-  SM --> QY
-  QY --> DB
-  DB -->|rows mapped to objects| MD
-  V -->|rendered templates| P
+```text
+Browser
+  ↓ HTTP / AJAX / Socket.IO
+Flask app (`app.py`)
+  ↓ SQLAlchemy ORM
+SQLite database
 ```
 
-### Request path (one interactive action)
+Important files and folders:
 
-A typical user-driven round trip looks like the sequence below. This is a simplified, documentation-only sketch; the real code may add redirects, error handlers, and CSRF or login checks as the project evolves.
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant C as Client JS
-  participant F as Flask view
-  participant S as SQLAlchemy
-  participant D as SQLite
-
-  U->>C: click / type in UI
-  C->>F: HTTP request (e.g. AJAX)
-  F->>S: load or persist models
-  S->>D: SQL statements
-  D-->>S: result set
-  S-->>F: ORM objects or aggregates
-  F-->>C: JSON or HTML response
-  C-->>U: update DOM
-```
-
-### Legend (quick reference)
-
-| Path | Role |
+| Path | Purpose |
 | :--- | :--- |
-| Client | What the user sees; sends HTTP to Flask, receives pages or small JSON payloads. |
-| Flask | Wires URLs to Python functions, enforces access rules, returns responses. |
-| SQLAlchemy | Expresses domain objects and generates SQL; keeps Python types aligned with tables. |
-| SQLite | Durable file-backed storage used in development and the baseline deployment story. |
+| `app.py` | Main Flask application, routes, Socket.IO events, CSRF setup, login manager, and migration setup. |
+| `models.py` | SQLAlchemy database models such as `User`, `Post`, `Category`, `Tag`, `Comment`, `Interest`, `Notification`, and `Message`. |
+| `forms.py` | Flask-WTF form definitions for registration, login, posts, comments, and account/avatar updates. |
+| `templates/` | Jinja templates for rendered pages such as the homepage, dashboard, post detail, login/register, profile, stats, and messaging pages. |
+| `static/` | CSS, JavaScript, uploaded images, and client-side behaviour. |
+| `migrations/` | Flask-Migrate / Alembic migration files for the current database schema. |
+| `seed.py` | Demo seed script for local testing and project demonstration. |
+| `tests/` | Unit, Socket.IO, avatar, and Selenium test coverage. |
 
-### ASCII sketch (portable, copy-paste friendly)
+### Request flow
 
-When Mermaid is not rendered (plain text, some PDF exports), the same idea still fits in a small box:
+A normal page request follows this path:
 
-```
-+------------------+       HTTP        +-------------------------+
-|  Web client      | <---------------> |  Flask (Python)         |
-|  HTML / JS / CSS |   JSON, forms,    |  routes, sessions,      |
-|  Bootstrap 5 UI  |   templates       |  controllers            |
-+--------+---------+                    +------------+------------+
-         |                                            |
-         |                              +-------------v-------------+
-         |                              |  SQLAlchemy ORM            |
-         |                              |  models, session, queries |
-         |                              +-------------+------------+
-         |                                            |
-         |                              +-------------v-------------+
-         |                              |  SQLite (database file)   |
-         |                              +---------------------------+
-         |                                            |
-         +--------------------------------------------+
-              user sees updated lists / messages
+```text
+User opens a page
+→ Flask route in app.py handles the request
+→ SQLAlchemy queries data from SQLite
+→ Flask renders a Jinja template
+→ Browser displays the page
 ```
 
-### Notes for future documentation edits
+AJAX actions, such as filtering posts or expressing interest, follow this path:
 
-* Keep this section synchronized when we add blueprints, API namespaces, or database migrations.  
-* If we introduce a separate front-end build step, draw an extra box for the bundler; Flask remains the single HTTP entry for server-rendered pages in the current design.  
-* For deployment diagrams (reverse proxy, WSGI server), add a separate doc; this README block stays focused on **client ↔ Flask ↔ SQLAlchemy** only.  
-* The teaching team and peers should be able to trace any user story from UI touchpoint down to a model without opening more than a handful of files.  
----
+```text
+Browser JavaScript sends AJAX request
+→ Flask route returns JSON
+→ JavaScript updates the page without a full reload
+```
 
-## API contracts
+Messaging uses a WebSocket-first approach:
 
-The main AJAX-facing JSON endpoints are documented in [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md).
+```text
+Conversation page loads Socket.IO client
+→ Browser joins a private conversation room
+→ New messages are saved to the Message table
+→ Server emits `messages:new` to both connected users
+→ AJAX polling remains as fallback if WebSocket is unavailable
+```
 
-This contract covers the discover filtering endpoint, tag metadata endpoint, public statistics endpoint, and dashboard chart endpoint. It is intended to keep frontend JavaScript, Flask routes, and future tests aligned as the project grows.
+### Main application features
 
----
+The app includes:
 
-## Post lifecycle
-
-Skill posts use the lifecycle states `open`, `matched`, and `closed`.
-
-Contributor-facing rules are documented in [`docs/POST_LIFECYCLE.md`](docs/POST_LIFECYCLE.md). A static user-facing help page is available at [`pages/post-lifecycle-help.html`](pages/post-lifecycle-help.html).
+- user registration and login;
+- UWA student email format validation;
+- profile pages and avatar upload/removal;
+- skill post creation, editing, deletion, categories, tags, and status;
+- AJAX discover filtering and search;
+- comments, mentions, likes, bookmarks, and notifications;
+- dashboard recommendations, interests, matches, and charts;
+- public statistics page;
+- private messaging with Socket.IO real-time updates and polling fallback;
+- seed data for demonstration accounts, posts, comments, likes, interests, messages, and avatars.
 
 ---
 
@@ -184,73 +128,166 @@ Contributor-facing rules are documented in [`docs/POST_LIFECYCLE.md`](docs/POST_
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-Ensure you have Python 3.10+ installed. It is recommended to use a virtual environment.
 
-### 2. Installation
-Clone the repository and install dependencies:
+Use Python 3.10+.
+
+It is recommended to use a virtual environment.
+
+### 2. Clone and install dependencies
+
+macOS / Linux:
+
 ```bash
-# Clone the repository
 git clone https://github.com/KenLoong/agile-group-uwa-skill-swap.git
 cd agile-group-uwa-skill-swap
 
-# Create and activate virtual environment
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
-# Install required libraries
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup & Seeding
-Apply migrations and populate the database with demo data:
-```bash
-# Apply all database migrations
-flask db upgrade
+Windows PowerShell:
 
-# Seed demo users, posts, comments, likes, etc.
-python3 seed.py
+```powershell
+git clone https://github.com/KenLoong/agile-group-uwa-skill-swap.git
+cd agile-group-uwa-skill-swap
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-> **Note:** `seed.py` wipes and repopulates all tables on every run. The seed avatar images (`h*.jpeg`) must exist in `static/uploads/avatars/` before running — they are included in the repository.
+### 3. Local environment
 
-**Demo Accounts** (password for all: `password123`):
+For local development, the app has a development fallback secret key. For any shared, marked, or deployed run, set `SECRET_KEY` explicitly.
 
-| Email | Offers | Wants |
-| :--- | :--- | :--- |
-| `alice@student.uwa.edu.au` | Coding | Language, Music |
-| `bob@student.uwa.edu.au` | Language, Yoga | Coding |
-| `carol@student.uwa.edu.au` | Music, Language | Coding |
-| `dave@student.uwa.edu.au` | Music, Sports | Music, Language |
-| `emma@student.uwa.edu.au` | Language, Sports | Sports |
-| `frank@student.uwa.edu.au` | Coding, Other | Language |
-| `grace@student.uwa.edu.au` | Language, Other | Coding |
-| `henry@student.uwa.edu.au` | Coding, Music, Other | Sports, Music |
+macOS / Linux:
 
-### 4. Launching the Application
 ```bash
-python3 app.py
+export SECRET_KEY="dev-local-secret-for-skill-swap"
 ```
-The application will be available at `http://127.0.0.1:5000/`
 
-> The `SECRET_KEY` environment variable is optional for local development — the app uses a built-in fallback. Set it explicitly in any shared or deployed environment:
-> ```bash
-> export SECRET_KEY="your-secret-here"
-> ```
+Windows PowerShell:
+
+```powershell
+$env:SECRET_KEY="dev-local-secret-for-skill-swap"
+```
+
+The default database is:
+
+```text
+sqlite:///database.db
+```
+
+You may override it with `DATABASE_URL`.
+
+### 4. Database setup
+
+Apply migrations:
+
+```bash
+python -m flask --app app db upgrade
+```
+
+This creates or updates the local SQLite database according to the committed migrations.
+
+### 5. Seed demo data
+
+Run:
+
+```bash
+python seed.py
+```
+
+`seed.py` wipes and repopulates demo data on each run.
+
+It creates:
+
+- demo users;
+- categories;
+- skill posts;
+- tags;
+- comments;
+- likes;
+- bookmarks;
+- interests;
+- notifications;
+- messages;
+- dashboard/statistics data;
+- copied avatar files for demo users.
+
+The source seed avatar images are stored in:
+
+```text
+static/uploads/avatars/
+```
+
+### 6. Demo accounts
+
+All demo accounts use the same password:
+
+```text
+password123
+```
+
+| Email | Example role in demo data |
+| :--- | :--- |
+| `alice@student.uwa.edu.au` | Coding posts, comments, messages, dashboard data |
+| `bob@student.uwa.edu.au` | Language/Yoga posts and messages |
+| `carol@student.uwa.edu.au` | Music/Language posts |
+| `dave@student.uwa.edu.au` | Sports/Music posts |
+| `emma@student.uwa.edu.au` | Language/Sports posts |
+| `frank@student.uwa.edu.au` | Coding/Web posts |
+| `grace@student.uwa.edu.au` | Other/Language posts |
+| `henry@student.uwa.edu.au` | Coding/Music/Other posts |
+
+### 7. Launch the application
+
+Use:
+
+```bash
+python app.py
+```
+
+The application will be available at:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Use `python app.py` rather than plain `flask run` when testing messaging, because `app.py` starts the application through `socketio.run(...)`, which supports the Socket.IO messaging layer.
 
 ---
 
 ## 🧪 Running Tests
 
-We use the standard Python `unittest` library to ensure application stability.
+This project uses Python `unittest`.
 
-To run the full test suite (including models, routes, and authentication logic):
+Run the full test suite:
+
 ```bash
-# Run all tests
-python -m unittest discover tests
-
-# Run specific test file
-python -m unittest tests/test_auth.py
+python -m unittest discover tests -v
 ```
+
+Run key test groups individually:
+
+```bash
+python -m unittest tests.test_unit -v
+python -m unittest tests.test_avatar -v
+python -m unittest tests.test_socket_messages -v
+```
+
+Selenium tests are also included:
+
+```bash
+python -m unittest tests.test_selenium -v
+```
+
+Selenium tests require a compatible browser and driver setup. They are slower than the unit tests and are usually run separately during final verification.
 
 ---
 
